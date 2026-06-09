@@ -4,21 +4,39 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 
-**An explainable quality-control toolkit for survey data.**
-*问卷数据质量检查工具 —— 规则透明、开箱即用。*
+> **Catch the junk in survey data before it skews your numbers.**
+> 在脏数据拉偏结论之前，先把它揪出来。
 
-Upload a survey export (Excel/CSV), and Cleanvey auto-detects each column's
-role, runs a set of **transparent** quality rules (speeding, straightlining,
-patterned answers, contradictions, gibberish, duplicates, missingness,
-out-of-range), and produces a per-respondent **risk score + recommended
-action**. Every flag comes with a human-readable reason — no black box.
-
-> 上传问卷文件，自动识别列、运行一套**可解释**的质量规则，给出每位受访者的风险等级与处理建议。
-> 纯规则模式无需任何 API Key；配置 Key 后可额外启用 LLM 语义检查（答非所问）。
+Upload a survey export → Cleanvey runs **15 transparent quality checks** and
+returns a per-respondent **risk score with a plain-language reason for every
+flag**. Seconds instead of hours, consistent instead of gut-feel, auditable
+instead of a black box. Works fully offline; an optional AI layer adds semantic
+checks when you want them.
 
 ---
 
-## 📸 界面预览 / Screenshots
+## 💡 Why it matters / 为什么重要
+
+A meaningful slice of raw survey responses is low quality — bots, speeders,
+copy-paste boilerplate, careless straight-lining, contradictory answers. Ship
+them into the analysis and **every downstream number (NPS, satisfaction,
+segmentation) is quietly wrong** — and the client decisions built on top of it.
+
+Today that cleanup is **manual**: analysts eyeball thousands of open-ends and
+scale grids by hand. It's slow, inconsistent between people, and hard to defend
+when a client asks *"why did you drop these respondents?"*
+
+**Cleanvey turns that into a repeatable, explainable pass:** every flagged
+respondent comes with the exact rule and reason, ready to show a client.
+
+> 问卷原始数据里总有一部分是脏的（机器人、超速、复制粘贴、直线作答、自相矛盾），
+> 混进分析就会**悄悄拉偏 NPS、满意度、人群细分**，进而影响客户决策。
+> 而现在的清洗多半靠人工肉眼逐条看——慢、因人而异、还难向客户解释。
+> Cleanvey 把它变成**可复现、可解释**的一步：每个被标记的样本都附规则与理由，可直接对客户交代。
+
+---
+
+## 📸 See it / 界面预览
 
 | 上传 Upload | 自动识别列 Auto column mapping |
 |:---:|:---:|
@@ -30,17 +48,48 @@ action**. Every flag comes with a human-readable reason — no black box.
 
 ---
 
-## ✨ Features / 功能
+## 🎯 What this project demonstrates / 这个项目体现了什么
 
-- **15 built-in QC rules** (+ optional LLM), each a small, readable function — easy to audit and extend.
-- **Auto column mapping** from names + value patterns; confirm/adjust in the UI.
-- **Composite risk score** → 高 / 中 / 低 buckets with a 剔除 / 复核 / 保留 recommendation.
-- **Two outputs**: a color-coded Excel detail workbook and a standalone HTML dashboard.
-- **Web app *and* CLI** from a single entry point.
-- **Optional LLM enhancement** (Anthropic Claude) — degrades gracefully to pure rules with no key.
-- **Synthetic demo data** included — try it in 30 seconds, zero real data anywhere.
+- **Spotting a real, costly problem — and automating it.** Data quality directly
+  determines whether a research deliverable is valid. I took a painful manual
+  process and made it fast, consistent, and defensible.
+  *(发现真实且昂贵的业务痛点，并把人工流程自动化。)*
+- **Domain expertise, codified.** 15 named, transparent checks plus a
+  configurable logic-constraint engine — the actual methodology of survey QC,
+  written down so anyone can audit it.
+  *(把市场研究 QC 的实战方法论沉淀成可审计的规则。)*
+- **AI used with judgment, not as a gimmick.** Rules do high-recall candidate
+  generation; an **optional** LLM acts as the precise "judge" and writes the
+  reason. No key? It degrades to pure rules — the tool never breaks.
+  *(AI 用在刀刃上：规则高召回、LLM 当判官；没 key 也能跑，绝不崩。)*
+- **Engineering that holds up.** Tested in CI across Python 3.10–3.12, compatible
+  with pandas 2.x **and** 3.0, pip-installable, explainable by design.
+  *(经得起检验的工程：CI、pandas 双版本兼容、可安装、可解释。)*
+- **Judgment & integrity.** This public version is fully **desensitized** —
+  generic methodology and synthetic data only, with **zero** client names, real
+  data, or tuned parameters. I can build in the open *and* protect confidential,
+  competitively-sensitive material.
+  *(分寸感：完全脱敏，零客户信息/真实数据/调好的参数——既能开放分享，又守住机密。)*
 
-## 🧭 The rules / 规则一览
+---
+
+## 🧭 How it works / 工作原理
+
+Cleanvey layers its checks cheapest-and-most-certain first, so every flag is
+explainable and any layer can be tuned independently:
+
+1. **Structure & logic** — speeding, straight-lining, patterns, duplicates,
+   missingness, out-of-range, configurable logic contradictions.
+2. **Open-end text quality** — gibberish, low-effort, too-short, repeated-token
+   spam, exact / fuzzy / self duplicates.
+3. **Cross-question consistency** — NPS vs. satisfaction, declarative constraints.
+4. **Semantic (optional, LLM)** — off-topic answers the rules can't settle.
+
+Two principles: **rules generate candidates, the model judges**; and **raw data
+is never overwritten — only QC columns are appended**, so the audit trail stays
+intact. Full write-up: [docs/methodology.md](docs/methodology.md).
+
+### The 15 checks / 规则一览
 
 | Rule | Catches | How |
 |---|---|---|
@@ -61,88 +110,48 @@ action**. Every flag comes with a human-readable reason — no black box.
 | 越界数值 Out-of-range | invalid values (e.g. NPS∉0–10) | domain check |
 | *答非所问 Off-topic* (LLM) | answer ignores the question | semantic check (optional) |
 
-See [docs/rules.md](docs/rules.md) for every rule's logic and thresholds, and
-[docs/methodology.md](docs/methodology.md) for the layered QC approach behind them.
+Per-rule logic and thresholds: [docs/rules.md](docs/rules.md).
 
 ---
 
-## 🚀 Quickstart / 快速开始
+## 🚀 Try it in 30 seconds / 30 秒上手
 
 ```bash
-# 1. install
 pip install -r requirements.txt
-
-# 2. generate the synthetic demo survey (300 rows with seeded issues)
-python sample_data/generate_sample.py
-
-# 3a. run from the command line
-python app.py check sample_data/demo_survey.xlsx --out report.xlsx
-
-# 3b. or launch the web app, then open http://127.0.0.1:5000
-python app.py
+python sample_data/generate_sample.py                 # synthetic demo (zero real data)
+python app.py check sample_data/demo_survey.xlsx       # CLI: prints a summary, writes report.xlsx
+python app.py                                          # or the web app at http://127.0.0.1:5000
 ```
 
-### Web flow / 网页流程
-`上传 Upload → 确认列映射 Map columns → 运行 Run → 查看结果并下载 Result & download`
+Web flow: `上传 Upload → 确认列映射 Map columns → 运行 Run → 下载报告 Download`.
+Prefer a real command? `pip install -e .` gives you `cleanvey check ...` / `cleanvey web`.
 
-### CLI
-```bash
-python app.py check data.xlsx \
-  --config config/default_rules.yaml \   # optional: tweak thresholds/weights
-  --out report.xlsx \
-  --llm                                   # optional: enable semantic checks
-```
+## 🤖 Optional AI layer / 可选 AI 层
 
-### Install as a package / 作为包安装
-Prefer a real command instead of `python app.py`? Install the library + CLI:
-```bash
-pip install -e .            # then the `cleanvey` command is available
-cleanvey check sample_data/demo_survey.xlsx --out report.xlsx
-cleanvey web                # web UI — run from the cloned repo
-```
-
----
-
-## 🤖 Optional LLM checks / 可选的 LLM 增强
-
-Cleanvey runs **fully without any API key**. To additionally flag *off-topic*
-open-ends:
+Runs **fully without any API key**. To also flag *off-topic* open-ends:
 
 ```bash
 pip install -r requirements-llm.txt
-cp .env.example .env        # then put your ANTHROPIC_API_KEY in .env
+cp .env.example .env        # add your ANTHROPIC_API_KEY
 ```
 
-With no key, the LLM rule is simply skipped and the report says so.
+No key → the LLM check is skipped and the report says so.
 
-## 🗂 Project structure / 项目结构
+## 🔧 Under the hood / 工程细节
 
 ```
-cleanvey/
-├── app.py                  # CLI + Flask web entry point
-├── cleanvey/
-│   ├── schema.py           # data loading + column mapping
-│   ├── engine.py           # run rules -> score respondents
-│   ├── scoring.py          # composite risk + 高/中/低 buckets
-│   ├── report.py           # Excel + HTML reports
-│   ├── llm.py              # optional Claude client (fail-soft)
-│   └── rules/              # one file per rule (self-contained)
-├── config/default_rules.yaml  # toggle rules, weights, thresholds
-├── sample_data/            # synthetic demo generator + xlsx
-├── docs/rules.md           # methodology
-└── tests/                  # pytest: per-rule + end-to-end
+app.py                     # CLI + Flask web entry
+cleanvey/                  # the library
+  schema.py                #   data loading + auto column mapping
+  engine.py / scoring.py   #   run rules -> composite risk -> 高/中/低
+  rules/                   #   one small, readable file per rule
+  report.py / llm.py       #   Excel+HTML reports / optional Claude client
+config/default_rules.yaml  # toggle rules, weights, thresholds
+tests/                     # pytest: per-rule + end-to-end
 ```
 
-## 🧪 Tests / 测试
-
-```bash
-pip install pytest && python -m pytest
-```
-Covers each rule individually plus an end-to-end run that confirms every rule
-fires on the seeded demo data.
-
-## 📄 License & data / 许可与数据
-
-MIT License. **All sample data is randomly generated** by
-`sample_data/generate_sample.py` and bears no relation to any real respondent,
-client, or project.
+- **Tests:** `python -m pytest` — each rule individually + an end-to-end run that
+  confirms every rule fires on the seeded demo. Green in CI on Python 3.10–3.12.
+- **License & data:** MIT. All sample data is randomly generated by
+  `sample_data/generate_sample.py` and bears no relation to any real respondent,
+  client, or project.
