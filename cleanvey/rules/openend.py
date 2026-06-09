@@ -33,7 +33,16 @@ def _is_gibberish(text: str) -> bool:
     if _SYMBOLS.match(t):
         return True
     compact = re.sub(r"\s+", "", t)
-    return any(k in compact for k in _KEYBOARD)
+    if any(k in compact for k in _KEYBOARD):
+        return True
+    # Long Latin string with implausibly few vowels = keyboard mashing
+    # (catches things like "dhrjhryfgj" that dodge the keyboard-run list).
+    letters = re.sub(r"[^a-z]", "", t)
+    if len(letters) >= 10:
+        vowels = sum(c in "aeiou" for c in letters)
+        if vowels / len(letters) < 0.25:
+            return True
+    return False
 
 
 @register(

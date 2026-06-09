@@ -62,7 +62,16 @@ def build() -> pd.DataFrame:
     df["open_reason"] = [_reason() for _ in range(N)]
     df["open_suggestion"] = ["" if RNG.random() < 0.3 else _reason() for _ in range(N)]
 
-    obj_cols = ["nps_score", *SCALE_COLS, "age", "gender", "region"]
+    # child age: present for ~60% of older respondents, plausibly spaced
+    child = []
+    for a in df["age"]:
+        if a >= 28 and RNG.random() < 0.6:
+            child.append(int(RNG.integers(0, a - 22)))   # parent >= 22 at birth
+        else:
+            child.append(np.nan)
+    df["child_age"] = child
+
+    obj_cols = ["nps_score", *SCALE_COLS, "age", "gender", "region", "child_age"]
 
     # 0-14 speeding
     df.loc[0:14, "duration_sec"] = RNG.integers(5, 25, 15)
@@ -97,6 +106,34 @@ def build() -> pd.DataFrame:
     df.loc[90:92, "nps_score"] = 99
     df.loc[93:94, "nps_score"] = -1
 
+    # 95-102 low-effort / non-substantive open-ends
+    low = ["不知道", "没有", "随便", "不清楚", "无所谓", "说不上来", "记不住", "没什么"]
+    for k, i in enumerate(range(95, 103)):
+        df.loc[i, "open_reason"] = low[k]
+
+    # 103-108 too-short open-ends (real but uninformative)
+    short = ["挺好", "不错", "蛮好", "可以", "赞", "行"]
+    for k, i in enumerate(range(103, 109)):
+        df.loc[i, "open_reason"] = short[k]
+
+    # 109-116 near-duplicate (reworded boilerplate, NOT exact)
+    near = [
+        "这个产品我用了大半年总体非常满意会推荐身边朋友购买",
+        "这个产品我用了大半年整体非常满意会推荐身边的朋友购买",
+        "客服态度很好物流也快下次还会继续回购支持这个牌子",
+        "客服态度挺好物流也快下次还会继续回购支持这个品牌",
+        "性价比很高质量也不错用起来很顺手值得入手推荐给大家",
+        "性价比挺高质量也不错用起来挺顺手值得入手推荐给大家",
+        "整体体验超出预期包装精美会推荐给同事和家人一起用",
+        "整体体验超出预期包装很精美会推荐给同事和家人一起用",
+    ]
+    for k, i in enumerate(range(109, 117)):
+        df.loc[i, "open_reason"] = near[k]
+
+    # 117-121 logic contradiction: parent only a few years older than child
+    for i in range(117, 122):
+        df.loc[i, "child_age"] = int(df.loc[i, "age"]) - int(RNG.integers(3, 10))
+
     return df
 
 
@@ -107,7 +144,8 @@ def main() -> None:
     df.to_excel(out, index=False)
     print(f"Wrote {len(df)} rows -> {out}")
     print("Injected: speeding(15) straightlining(15) pattern(10) contradiction(10) "
-          "gibberish(12) duplicate_text(10) duplicate_respondent(8) missing(10) out_of_range(5)")
+          "gibberish(12) duplicate_text(10) duplicate_respondent(8) missing(10) out_of_range(5) "
+          "low_effort(8) too_short(6) near_duplicate(8) logic_check(5)")
 
 
 if __name__ == "__main__":

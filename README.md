@@ -28,7 +28,7 @@ action**. Every flag comes with a human-readable reason — no black box.
 
 ## ✨ Features / 功能
 
-- **9 built-in QC rules**, each a small, readable function — easy to audit and extend.
+- **13 built-in QC rules** (+ optional LLM), each a small, readable function — easy to audit and extend.
 - **Auto column mapping** from names + value patterns; confirm/adjust in the UI.
 - **Composite risk score** → 高 / 中 / 低 buckets with a 剔除 / 复核 / 保留 recommendation.
 - **Two outputs**: a color-coded Excel detail workbook and a standalone HTML dashboard.
@@ -44,14 +44,19 @@ action**. Every flag comes with a human-readable reason — no black box.
 | 直线作答 Straightlining | same answer down a scale block | spread of scale items ≈ 0 |
 | 模式化作答 Pattern | mechanical 1-2-3-4 / 1-2-1-2 | diffs form a run or zig-zag |
 | 矛盾作答 Contradiction | NPS vs. satisfaction conflict | large normalised gap |
-| 开放题乱填 Gibberish | keyboard mashing / symbols | char-level heuristics |
+| 开放题乱填 Gibberish | keyboard mashing / symbols | char heuristics + vowel ratio |
+| 无信息作答 Low-effort | "don't know / none / whatever" | polarity-aware dictionary |
+| 开放题过短 Too short | uninformative one-word answers | effective-character count |
 | 开放题雷同 Duplicate text | copy-pasted open-ends | normalised exact match |
+| 近似雷同 Near-duplicate | reworded boilerplate | RapidFuzz similarity (review) |
 | 整份雷同 Duplicate respondent | identical whole questionnaires | row signature collision |
+| 逻辑矛盾 Logic check | age/income/exclusivity conflicts | configurable constraints |
 | 作答缺失 Missing | too many blanks | missing ratio > 50% |
 | 越界数值 Out-of-range | invalid values (e.g. NPS∉0–10) | domain check |
 | *答非所问 Off-topic* (LLM) | answer ignores the question | semantic check (optional) |
 
-See [docs/rules.md](docs/rules.md) for the full methodology and thresholds.
+See [docs/rules.md](docs/rules.md) for every rule's logic and thresholds, and
+[docs/methodology.md](docs/methodology.md) for the layered QC approach behind them.
 
 ---
 

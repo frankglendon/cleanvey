@@ -67,6 +67,37 @@ rules:
       nps_min: 0
       nps_max: 10
 
+  low_effort:                  # "don't know / none / whatever" open-ends
+    enabled: true
+    weight: 0.5
+    params:
+      negative_polarity_cols: []   # columns where "none" is a valid answer
+
+  too_short:                   # open-ends with too few effective characters
+    enabled: true
+    weight: 0.3
+    params:
+      min_chars: 4             # conservative; raise per project
+
+  near_duplicate:              # fuzzy near-duplicate -> review only, not drop
+    enabled: true
+    weight: 0.4
+    params:
+      similarity: 0.9          # 0..1 RapidFuzz ratio
+      min_len: 10
+      max_rows: 2000
+
+  logic_check:                 # configurable common-sense consistency checks
+    enabled: true
+    weight: 0.8
+    # Constraints only fire if their columns exist, so this is safe across
+    # datasets. Types: gte_diff (a-b>=min), le_cols (a<=b), not_both (mutually
+    # exclusive). The two below are illustrative — declare your own.
+    params:
+      constraints:
+        - {type: gte_diff, a: age, b: child_age, min: 16, label: "受访者与子女年龄差不合常理"}
+        - {type: le_cols, a: personal_income, b: household_income, label: "个人收入高于家庭总收入"}
+
 # Risk bucketing: respondents with weighted risk >= high -> 高 (drop),
 # >= medium -> 中 (review), otherwise 低 (keep).
 scoring:

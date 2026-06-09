@@ -62,7 +62,27 @@ The composite **risk score** is the weighted sum of rule severities. Buckets:
 - **Method**: range-check the NPS column; optional `extra_ranges: {column: [min, max]}` for other numeric fields.
 - **Defaults**: `nps_min = 0`, `nps_max = 10`.
 
-## 10. 答非所问 · Off-topic *(optional, LLM)*
+## 10. 无信息作答 · Low-effort
+- **Signal**: a non-empty open-end that says nothing — "don't know", "none", "whatever".
+- **Method**: match the normalised answer against a small, generic non-substantive dictionary. **Polarity-aware**: list a question's column in `negative_polarity_cols` to exempt it (where "none" is a valid reply to "what could be better?").
+- **Note**: the dictionary is a generic starter — extend it and add other languages for your surveys.
+
+## 11. 开放题过短 · Too short
+- **Signal**: too few *effective* characters (CJK + alphanumeric) to carry meaning.
+- **Method**: flag non-empty answers with effective length `< min_chars`. Blank = missing (handled elsewhere), not "short".
+- **Defaults**: `min_chars = 4` (conservative, so genuine brief answers survive). Calibrate per project.
+
+## 12. 近似雷同 · Near-duplicate *(fuzzy)*
+- **Signal**: lightly reworded boilerplate shared across respondents (complements exact `duplicate_text`).
+- **Method**: RapidFuzz similarity between substantial open-ends. **Review-only** (low severity) — short praise legitimately collides, so similarity alone never auto-drops.
+- **Defaults**: `similarity = 0.9`, `min_len = 10`, bounded by `max_rows`.
+
+## 13. 逻辑矛盾 · Logic check *(configurable)*
+- **Signal**: common-sense contradictions across closed-ended answers (respondent younger than their child, tenure > working life, personal income > household income, mutually exclusive options both chosen).
+- **Method**: declare constraints in config; each fires only if its columns exist (safe across datasets). Types: `gte_diff` (a−b ≥ min), `le_cols` (a ≤ b), `not_both` (mutually exclusive).
+- **Note**: shipped constraints are *illustrative*; declare your own. No project-tuned thresholds.
+
+## 14. 答非所问 · Off-topic *(optional, LLM)*
 - **Signal**: an open-end that doesn't address the question.
 - **Method**: batched semantic classification via Anthropic Claude. **Skipped entirely** without an API key; the report notes it was not run.
 - **Needs**: open-ended columns + `ANTHROPIC_API_KEY`.

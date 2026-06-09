@@ -29,8 +29,9 @@ def test_end_to_end_catches_each_issue():
 
     res = run_qc(df, schema, default_config(), use_llm=False)
     hits = res.summary["rule_hits"]
-    for name in ["超速作答", "直线作答", "模式化作答", "矛盾作答",
-                 "开放题乱填", "开放题雷同", "整份雷同", "作答缺失", "越界数值"]:
+    for name in ["超速作答", "直线作答", "模式化作答", "矛盾作答", "逻辑矛盾",
+                 "开放题乱填", "开放题雷同", "无信息作答", "开放题过短", "近似雷同",
+                 "整份雷同", "作答缺失", "越界数值"]:
         assert hits.get(name, 0) > 0, f"{name} 未命中"
 
     # LLM rule must be skipped when no key is configured

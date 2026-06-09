@@ -66,3 +66,37 @@ def test_contradiction():
     df = pd.DataFrame({"nps": [10, 5], "总体满意度": [1, 3]})
     r = run("contradiction", df, Schema(nps_col="nps", scale_cols=["总体满意度"]))
     assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
+
+
+def test_low_effort():
+    df = pd.DataFrame({"o": ["不知道", "因为质量很好用着也省心"]})
+    r = run("low_effort", df, Schema(openend_cols=["o"]))
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
+
+
+def test_too_short():
+    df = pd.DataFrame({"o": ["好", "这是一段有实质内容的回答"]})
+    r = run("too_short", df, Schema(openend_cols=["o"]))
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
+
+
+def test_gibberish_low_vowel():
+    df = pd.DataFrame({"o": ["dhrjhryfgjkbvn", "this is a normal english sentence"]})
+    r = run("gibberish", df, Schema(openend_cols=["o"]))
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
+
+
+def test_near_duplicate():
+    df = pd.DataFrame({"o": [
+        "这个产品我用了大半年总体非常满意会推荐朋友",
+        "这个产品我用了大半年整体非常满意会推荐朋友",
+        "完全不一样的另外一段独立内容的文字描述",
+    ]})
+    r = run("near_duplicate", df, Schema(openend_cols=["o"]))
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[2, "flagged"])
+
+
+def test_logic_check():
+    df = pd.DataFrame({"age": [40, 30], "child_age": [35, 5]})
+    r = run("logic_check", df, Schema())  # default constraint: age - child_age >= 16
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
