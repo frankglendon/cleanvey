@@ -1,0 +1,74 @@
+# Cleanvey rule configuration.
+# Everything here is optional — Cleanvey ships sensible defaults. Copy this file,
+# edit it, and pass it with `--config your_rules.yaml` to override.
+#
+# For each rule you can set:
+#   enabled : true/false   turn the rule on or off
+#   weight  : number       how much it contributes to the risk score
+#   params  : {...}        rule-specific thresholds (see comments)
+
+rules:
+  speeding:
+    enabled: true
+    weight: 1.0
+    params:
+      relative_ratio: 0.34   # flag if duration < 34% of the median duration
+      min_seconds: 0         # absolute floor in seconds (0 = ignore)
+
+  straightlining:
+    enabled: true
+    weight: 1.0
+    params:
+      min_items: 3           # need at least this many scale answers
+      std_threshold: 0.0     # 0 = all identical; raise to allow tiny variation
+
+  pattern:
+    enabled: true
+    weight: 0.8
+
+  contradiction:
+    enabled: true
+    weight: 0.7
+    params:
+      gap_threshold: 0.8     # 0..1 normalised gap between NPS and satisfaction
+
+  gibberish:
+    enabled: true
+    weight: 0.9
+
+  duplicate_text:
+    enabled: true
+    weight: 0.7
+    params:
+      min_len: 8             # ignore short generic answers when matching
+
+  offtopic:                  # LLM rule — runs only when an API key is set
+    enabled: true
+    weight: 0.8
+    params:
+      max_rows: 300
+
+  duplicate_respondent:
+    enabled: true
+    weight: 0.9
+    params:
+      min_answered: 5        # need this many answered objective questions
+
+  missing:
+    enabled: true
+    weight: 0.6
+    params:
+      max_missing_ratio: 0.5 # flag if more than 50% of key questions are blank
+
+  out_of_range:
+    enabled: true
+    weight: 0.7
+    params:
+      nps_min: 0
+      nps_max: 10
+
+# Risk bucketing: respondents with weighted risk >= high -> 高 (drop),
+# >= medium -> 中 (review), otherwise 低 (keep).
+scoring:
+  high: 0.9
+  medium: 0.4

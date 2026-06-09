@@ -1,0 +1,3 @@
+# Optional: enables LLM-powered semantic checks (off-topic / sentiment mismatch).
+# Cleanvey runs fully without this — install only if you set ANTHROPIC_API_KEY.
+anthropic>=0.40

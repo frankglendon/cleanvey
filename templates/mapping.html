@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <h2 class="mb-1">确认列的角色</h2>
+    <p class="hero mb-4">
+      已读取 {{ rows }} 行。下面是自动识别的结果，请检查并按需调整——规则会据此运行。
+    </p>
+
+    <form action="/run/{{ token }}" method="post">
+      <div class="card shadow-sm">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>列名</th><th>示例值</th><th style="width:220px">角色</th></tr>
+            </thead>
+            <tbody>
+              {% for col in columns %}
+              <tr>
+                <td class="fw-semibold">{{ col.name }}</td>
+                <td class="text-muted small">{{ col.sample }}</td>
+                <td>
+                  <select class="form-select form-select-sm" name="role_{{ col.name }}">
+                    {% for value, label in roles %}
+                      <option value="{{ value }}" {{ 'selected' if value == col.role else '' }}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <button class="btn btn-dark mt-3" type="submit">运行质量检查 →</button>
+      <a class="btn btn-link mt-3" href="/">重新上传</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

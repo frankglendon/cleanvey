@@ -1,0 +1,195 @@
+"""Cleanvey entry point — both a CLI and a small Flask web app.
+
+CLI:
+    python app.py check sample_data/demo_survey.xlsx
+    python app.py check data.xlsx --config config/default_rules.yaml --out report.xlsx --llm
+
+Web:
+    python app.py            # then open http://127.0.0.1:5000
+    python app.py web --port 8000
+
+The web app keeps per-upload state in an in-memory dict — fine for local,
+single-user use (this is a demo/portfolio tool, not a multi-tenant service).
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+import uuid
+
+from flask import (Flask, abort, redirect, render_template, request,
+                   send_file, url_for)
+
+from cleanvey.config import load_config
+from cleanvey.engine import run_qc
+from cleanvey.llm import llm_available
+from cleanvey.report import write_excel, write_html
+from cleanvey.schema import ColumnRole, Schema, guess_schema, load_data
+
+BASE = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BASE, "uploads")
+OUTPUT_DIR = os.path.join(BASE, "outputs")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+ALLOWED = (".csv", ".xlsx", ".xls")
+SESSIONS: dict = {}  # token -> {"path", "df", "schema", "result", "excel", "html"}
+
+app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB
+
+
+def schema_from_form(columns, form) -> Schema:
+    """Rebuild a Schema from the mapping form (role_<col> -> role)."""
+    schema = Schema()
+    for col in columns:
+        role = form.get(f"role_{col}", ColumnRole.OTHER.value)
+        if role == ColumnRole.ID.value:
+            schema.id_col = col
+        elif role == ColumnRole.NPS.value:
+            schema.nps_col = col
+        elif role == ColumnRole.DURATION.value:
+            schema.duration_col = col
+        elif role == ColumnRole.SCALE.value:
+            schema.scale_cols.append(col)
+        elif role == ColumnRole.OPENEND.value:
+            schema.openend_cols.append(col)
+        elif role == ColumnRole.CATEGORICAL.value:
+            schema.categorical_cols.append(col)
+    return schema
+
+
+@app.route("/")
+def index():
+    return render_template("index.html", llm=llm_available())
+
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return redirect(url_for("index"))
+    if not file.filename.lower().endswith(ALLOWED):
+        abort(400, "仅支持 .csv / .xlsx / .xls 文件")
+
+    token = uuid.uuid4().hex
+    path = os.path.join(UPLOAD_DIR, f"{token}_{file.filename}")
+    file.save(path)
+
+    df = load_data(path)
+    schema = guess_schema(df)
+    SESSIONS[token] = {"path": path, "df": df, "schema": schema}
+    return redirect(url_for("mapping", token=token))
+
+
+@app.route("/mapping/<token>")
+def mapping(token):
+    sess = SESSIONS.get(token) or abort(404)
+    df, schema = sess["df"], sess["schema"]
+    columns = [
+        {"name": c, "role": schema.role_of(c).value,
+         "sample": ", ".join(df[c].dropna().astype(str).head(3).tolist())}
+        for c in df.columns
+    ]
+    roles = [(r.value, label) for r, label in [
+        (ColumnRole.ID, "受访者ID"), (ColumnRole.NPS, "NPS推荐分"),
+        (ColumnRole.SCALE, "量表题"), (ColumnRole.OPENEND, "开放题"),
+        (ColumnRole.DURATION, "答题时长"), (ColumnRole.CATEGORICAL, "分类/单选"),
+        (ColumnRole.OTHER, "忽略"),
+    ]]
+    return render_template("mapping.html", token=token, columns=columns,
+                           roles=roles, rows=len(df))
+
+
+@app.route("/run/<token>", methods=["POST"])
+def run(token):
+    sess = SESSIONS.get(token) or abort(404)
+    df = sess["df"]
+    schema = schema_from_form(df.columns, request.form)
+
+    config = load_config(os.path.join(BASE, "config", "default_rules.yaml"))
+    use_llm = llm_available()
+    result = run_qc(df, schema, config, use_llm=use_llm)
+
+    excel_path = os.path.join(OUTPUT_DIR, f"{token}_report.xlsx")
+    html_path = os.path.join(OUTPUT_DIR, f"{token}_report.html")
+    write_excel(result.detail, result.summary, excel_path)
+    write_html(result.summary, html_path)
+
+    sess.update({"result": result, "excel": excel_path, "html": html_path})
+    return redirect(url_for("result", token=token))
+
+
+@app.route("/result/<token>")
+def result(token):
+    sess = SESSIONS.get(token) or abort(404)
+    res = sess.get("result") or abort(404)
+    preview = res.detail.head(50)
+    table_html = preview.to_html(
+        classes="table table-sm table-striped", index=False, na_rep=""
+    )
+    return render_template("result.html", token=token, summary=res.summary,
+                           table_html=table_html)
+
+
+@app.route("/download/<token>/<kind>")
+def download(token, kind):
+    sess = SESSIONS.get(token) or abort(404)
+    path = sess.get("excel" if kind == "excel" else "html") or abort(404)
+    return send_file(path, as_attachment=True)
+
+
+def run_cli(args) -> int:
+    df = load_data(args.file)
+    schema = guess_schema(df)
+    config = load_config(args.config)
+    use_llm = args.llm and llm_available()
+    if args.llm and not use_llm:
+        print("提示：未检测到 ANTHROPIC_API_KEY，已跳过 LLM 语义检查。")
+
+    result = run_qc(df, schema, config, use_llm=use_llm)
+    write_excel(result.detail, result.summary, args.out)
+
+    s = result.summary
+    print(f"\n样本总数：{s['total']}")
+    print(f"高风险 {s['level_counts']['高']} · 中风险 {s['level_counts']['中']} "
+          f"· 低风险 {s['level_counts']['低']}")
+    print("各规则命中：")
+    for name, hits in s["rule_hits"].items():
+        print(f"  - {name}: {hits}")
+    if s["skipped_rules"]:
+        print("未运行的规则：")
+        for sk in s["skipped_rules"]:
+            print(f"  - {sk['rule']}（{sk['reason']}）")
+    print(f"\n报告已写出：{args.out}")
+    return 0
+
+
+def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    parser = argparse.ArgumentParser(prog="cleanvey", description="Survey data QC toolkit")
+    sub = parser.add_subparsers(dest="cmd")
+
+    c = sub.add_parser("check", help="run QC on a file (no server)")
+    c.add_argument("file")
+    c.add_argument("--config", default=None, help="rules YAML (optional)")
+    c.add_argument("--out", default="cleanvey_report.xlsx")
+    c.add_argument("--llm", action="store_true", help="enable LLM semantic checks")
+
+    w = sub.add_parser("web", help="start the web app")
+    w.add_argument("--port", type=int, default=5000)
+    w.add_argument("--host", default="127.0.0.1")
+
+    args = parser.parse_args(argv)
+    if args.cmd == "check":
+        return run_cli(args)
+    port = getattr(args, "port", 5000)
+    host = getattr(args, "host", "127.0.0.1")
+    print(f"Cleanvey running at http://{host}:{port}  (Ctrl+C to stop)")
+    app.run(host=host, port=port, debug=False)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

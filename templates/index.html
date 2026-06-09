@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h2 class="mb-1">问卷数据质量检查</h2>
+    <p class="hero mb-4">
+      上传问卷导出文件（Excel / CSV），Cleanvey 会自动识别列、运行一套可解释的质量规则
+      （超速、直线、模式化、矛盾、乱填、雷同、缺失、越界……），并给出每位受访者的风险等级与处理建议。
+    </p>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form action="/upload" method="post" enctype="multipart/form-data">
+          <label class="form-label fw-semibold">选择问卷文件</label>
+          <input class="form-control mb-3" type="file" name="file" accept=".csv,.xlsx,.xls" required>
+          <button class="btn btn-dark" type="submit">上传并识别列 →</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="alert alert-{{ 'success' if llm else 'secondary' }} mt-3 small mb-0">
+      {% if llm %}
+        ✅ 已检测到 API Key：开放题“答非所问”等语义检查（LLM）将一并运行。
+      {% else %}
+        ℹ️ 当前为纯规则模式（无需任何 API Key 即可使用）。如需开放题语义检查，
+        可在 <code>.env</code> 中配置 <code>ANTHROPIC_API_KEY</code>。
+      {% endif %}
+    </div>
+
+    <p class="text-muted small mt-3">
+      没有数据？仓库自带合成示例 <code>sample_data/demo_survey.xlsx</code>，直接上传即可体验。
+    </p>
+  </div>
+</div>
+{% endblock %}

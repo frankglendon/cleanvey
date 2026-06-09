@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Cleanvey · 问卷质量检查{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background:#f5f6f8; }
+    .navbar-brand { font-weight:700; letter-spacing:.5px; }
+    .hero { color:#6b7280; }
+    .footer { color:#9aa3af; font-size:13px; text-align:center; padding:32px 0; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/">🧹 Cleanvey</a>
+      <span class="navbar-text text-light small">Survey Data Quality Control</span>
+    </div>
+  </nav>
+  <main class="container py-4">
+    {% block content %}{% endblock %}
+  </main>
+  <div class="footer container">
+    Cleanvey · open-source survey QC toolkit · MIT License
+  </div>
+</body>
+</html>

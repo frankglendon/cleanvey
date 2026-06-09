@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block head %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">检查结果</h2>
+  <div>
+    <a class="btn btn-success btn-sm" href="/download/{{ token }}/excel">⬇ 下载明细 Excel</a>
+    <a class="btn btn-outline-secondary btn-sm" href="/download/{{ token }}/html">⬇ 下载 HTML 报告</a>
+    <a class="btn btn-link btn-sm" href="/">新建检查</a>
+  </div>
+</div>
+
+<p class="hero">
+  共 {{ summary.total }} 份样本 · 被标记 {{ summary.flagged_total }} 份 ·
+  语义检查（LLM）{{ '已启用' if summary.llm_used else '未启用' }}
+</p>
+
+<div class="row g-3 mb-4">
+  {% set lc = summary.level_counts %}
+  <div class="col"><div class="card text-center shadow-sm"><div class="card-body">
+    <div class="display-6 text-danger">{{ lc['高'] }}</div><div class="text-muted">高风险 · 建议剔除</div>
+  </div></div></div>
+  <div class="col"><div class="card text-center shadow-sm"><div class="card-body">
+    <div class="display-6 text-warning">{{ lc['中'] }}</div><div class="text-muted">中风险 · 建议复核</div>
+  </div></div></div>
+  <div class="col"><div class="card text-center shadow-sm"><div class="card-body">
+    <div class="display-6 text-success">{{ lc['低'] }}</div><div class="text-muted">低风险 · 保留</div>
+  </div></div></div>
+</div>
+
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <h5>各规则命中率</h5>
+  <canvas id="hits" height="100"></canvas>
+</div></div>
+
+{% if summary.skipped_rules %}
+<div class="alert alert-warning small">
+  <b>未运行的规则：</b>
+  <ul class="mb-0">
+    {% for s in summary.skipped_rules %}<li>{{ s.rule }} — {{ s.reason }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<h5 class="mt-4">明细预览（前 50 行）</h5>
+<div class="card shadow-sm"><div class="table-responsive" style="max-height:520px">
+  {{ table_html|safe }}
+</div></div>
+
+<script>
+const rates = {{ summary.rule_hit_rates|tojson }};
+new Chart(document.getElementById('hits'), {
+  type:'bar',
+  data:{ labels:Object.keys(rates),
+         datasets:[{ data:Object.values(rates).map(v => +(v*100).toFixed(1)),
+                     backgroundColor:'#2563eb', label:'命中率 %' }] },
+  options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}} }
+});
+</script>
+{% endblock %}

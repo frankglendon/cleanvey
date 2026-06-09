@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+
+# Runtime / user data — never commit real survey data
+uploads/
+outputs/
+*.xlsx
+*.xls
+*.csv
+
+# Keep the synthetic demo data
+!sample_data/demo_survey.xlsx
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
