@@ -35,13 +35,13 @@ def _in_set(series: pd.Series, values) -> pd.Series:
             num_targets.add(float(v))
         except (TypeError, ValueError):
             pass
-    by_str = series.astype(str).str.strip().isin(str_targets)
+    by_str = series.fillna("").astype(str).str.strip().isin(str_targets)
     by_num = pd.to_numeric(series, errors="coerce").isin(num_targets)
     return by_str | by_num
 
 
 def _is_blank(series: pd.Series) -> pd.Series:
-    return series.isna() | (series.astype(str).str.strip().replace("nan", "") == "")
+    return series.isna() | (series.fillna("").astype(str).str.strip() == "")
 
 _DEFAULT_CONSTRAINTS = [
     {"type": "gte_diff", "a": "age", "b": "child_age", "min": 16,

@@ -40,7 +40,7 @@ def check(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame:
 
     sub = df[cols]
     answered = sub.notna().sum(axis=1)
-    sig = sub.astype(str).apply(lambda r: "|".join(r.values), axis=1)
+    sig = sub.fillna("").astype(str).apply(lambda r: "|".join(r.values), axis=1)
 
     valid = answered >= min_answered
     counts = sig[valid].value_counts()

@@ -38,7 +38,7 @@ def check(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame:
 
     threshold = float(params.get("max_missing_ratio", 0.5))
     sub = df[cols]
-    blank = sub.isna() | (sub.astype(str).apply(lambda s: s.str.strip()) == "")
+    blank = sub.isna() | (sub.fillna("").astype(str).apply(lambda s: s.str.strip()) == "")
     ratio = blank.sum(axis=1) / len(cols)
 
     flagged = ratio > threshold

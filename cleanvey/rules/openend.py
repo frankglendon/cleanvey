@@ -89,7 +89,7 @@ def check_duplicate_text(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame
     flagged = set()
 
     for col in schema.openend_cols:
-        norm = df[col].astype(str).map(lambda s: re.sub(r"\s+", "", s.strip().lower()))
+        norm = df[col].fillna("").astype(str).map(lambda s: re.sub(r"\s+", "", s.strip().lower()))
         valid = norm.str.len() >= min_len  # ignore short generic answers ("无")
         counts = norm[valid].value_counts()
         dup_values = set(counts[counts >= 2].index)
@@ -125,7 +125,7 @@ def check_offtopic(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame:
         return res  # engine also skips LLM rules without a key; double safety
 
     for col in schema.openend_cols:
-        answers = df[col].astype(str).tolist()
+        answers = df[col].fillna("").astype(str).tolist()
         verdicts = client.classify_offtopic(str(col), answers)
         for idx, off in zip(df.index, verdicts):
             if off:

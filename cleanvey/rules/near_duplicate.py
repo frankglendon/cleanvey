@@ -35,7 +35,7 @@ def check(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame:
     flagged = set()
 
     for col in schema.openend_cols:
-        norm = df[col].astype(str).map(lambda s: re.sub(r"\s+", "", s.strip().lower()))
+        norm = df[col].fillna("").astype(str).map(lambda s: re.sub(r"\s+", "", s.strip().lower()))
         # group identical texts; only compare *distinct* substantial texts
         groups: dict = {}
         for idx in df.index:

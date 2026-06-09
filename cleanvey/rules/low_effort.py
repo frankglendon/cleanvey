@@ -53,7 +53,7 @@ def check(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame:
     hit = pd.DataFrame({c: df[c].map(is_empty_or_low) for c in cols}, index=df.index)
     # only count columns that actually had a (non-blank) answer
     answered = pd.DataFrame(
-        {c: df[c].astype(str).str.strip().replace("nan", "").astype(bool) for c in cols},
+        {c: df[c].fillna("").astype(str).str.strip().astype(bool) for c in cols},
         index=df.index,
     )
     n_hit = (hit & answered).sum(axis=1)
