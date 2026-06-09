@@ -98,9 +98,9 @@ The composite **risk score** is the weighted sum of rule severities. Buckets:
 - **Method**: compare a respondent's open-ends against each other; flag when ≥ 2 substantial answers (length ≥ `min_len`) are identical.
 - **Needs**: ≥ 2 open-ended columns. **Defaults**: `min_len = 4`.
 
-## 16. 答非所问 · Off-topic *(optional, LLM)*
+## 16. 答非所问 · Off-topic *(LLM judge)*
 - **Signal**: an open-end that doesn't address the question.
-- **Method**: batched semantic classification via Anthropic Claude. **Skipped entirely** without an API key; the report notes it was not run.
+- **Method**: the semantic layer — batched classification by an LLM judge (Anthropic Claude) that returns a verdict + reason. Configure `ANTHROPIC_API_KEY` to run it; can be turned off via `offtopic.enabled: false`, in which case the report notes the judge was not run.
 - **Needs**: open-ended columns + `ANTHROPIC_API_KEY`.
 
 ---

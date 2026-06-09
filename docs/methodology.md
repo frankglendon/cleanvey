@@ -23,16 +23,17 @@ Answers that conflict with each other — e.g. NPS vs. an overall-satisfaction
 item (`contradiction`), or declarative numeric constraints across columns
 (`logic_check`).
 
-**Layer 4 — Semantic, optional (LLM)（语义层，可选）**
-Only the genuinely ambiguous cases that rules can't settle — off-topic answers,
-sentiment that contradicts a score. Activated only when an API key is present;
-absent that, the tool runs fully on Layers 1–3.
+**Layer 4 — Semantic: the LLM judge（语义层 · 大模型判官）**
+The genuinely ambiguous cases that rules can't settle — off-topic answers,
+sentiment that contradicts a score — go to an LLM judge that returns a verdict
+plus a reason. Configure `ANTHROPIC_API_KEY` to run it; advanced users can
+disable it in config, in which case the report notes the judge was not run.
 
 ## Two principles / 两条原则
 
 1. **Rules generate candidates; the model judges.（规则负责高召回候选，模型负责精准判定）**
    Keyword/heuristic rules are tuned for recall — they cast a wide net. The
-   optional LLM layer is the judge that adds precision and a written reason.
+   LLM layer is the judge that adds precision and a written reason.
    Deterministic layers (1–3) may flag for removal on their own; the semantic
    layer only advises.
 

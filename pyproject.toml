@@ -24,10 +24,10 @@ dependencies = [
     "openpyxl>=3.1",
     "rapidfuzz>=3.0",
     "PyYAML>=6.0",
+    "anthropic>=0.40",     # LLM "judge" (core); set ANTHROPIC_API_KEY to use
 ]
 
 [project.optional-dependencies]
-llm = ["anthropic>=0.40"]
 dev = ["pytest>=7.4"]
 
 [project.scripts]

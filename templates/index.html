@@ -18,12 +18,12 @@
       </div>
     </div>
 
-    <div class="alert alert-{{ 'success' if llm else 'secondary' }} mt-3 small mb-0">
+    <div class="alert alert-{{ 'success' if llm else 'warning' }} mt-3 small mb-0">
       {% if llm %}
-        ✅ 已检测到 API Key：开放题“答非所问”等语义检查（LLM）将一并运行。
+        ✅ LLM 判官已启用：开放题“答非所问”等语义判断作为流程的核心一层一并运行。
       {% else %}
-        ℹ️ 当前为纯规则模式（无需任何 API Key 即可使用）。如需开放题语义检查，
-        可在 <code>.env</code> 中配置 <code>ANTHROPIC_API_KEY</code>。
+        ⚠️ 尚未配置 <code>ANTHROPIC_API_KEY</code>。LLM 判官是本工具的核心组件，
+        请在 <code>.env</code> 中填入 Key 以运行完整流程。
       {% endif %}
     </div>
 

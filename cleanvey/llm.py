@@ -1,12 +1,12 @@
-"""Optional LLM enhancement (Anthropic Claude by default).
+"""The LLM judge (Anthropic Claude by default).
 
-This module is the *only* place that talks to an LLM, and it is designed to
-fail soft: if the `anthropic` package isn't installed or no API key is set,
-`get_client()` returns None and every LLM-based rule is skipped. The rule-based
-core never depends on this.
+This module is the *only* place that talks to an LLM. It powers the semantic
+layer (the off-topic check). Set `ANTHROPIC_API_KEY` (directly or via a .env
+file) to run it.
 
-Enable it by installing `requirements-llm.txt` and setting ANTHROPIC_API_KEY
-(directly or via a .env file).
+It is also designed to fail soft for robustness: if the key or the `anthropic`
+package is missing, `get_client()` returns None and the LLM rule is skipped with
+a note in the report — the deterministic rule engine still runs either way.
 """
 from __future__ import annotations
 
