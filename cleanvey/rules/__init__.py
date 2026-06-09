@@ -1,8 +1,11 @@
 """Importing this package registers every built-in rule.
+导入本包即注册所有内置规则。
 
 Each module calls `@register(...)` at import time, populating `REGISTRY`.
 The import order below is also the default display order. `openend` registers
 three rules at once: gibberish, duplicate_text and offtopic.
+每个模块在导入时调用 `@register(...)` 填充 `REGISTRY`；下面的导入顺序也是默认展示顺序。
+`openend` 一次注册三条规则：gibberish、duplicate_text、offtopic。
 """
 from .base import REGISTRY, Rule, register, empty_result  # noqa: F401
 

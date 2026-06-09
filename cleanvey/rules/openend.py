@@ -1,8 +1,11 @@
 """Open-ended text rules: gibberish, duplicate text, and off-topic (LLM).
+开放题文本规则：乱码、跨人雷同、答非所问（LLM）。
 
 These target free-text answers, where careless or fraudulent respondents leave
 the clearest fingerprints: keyboard mashing, copy-pasted boilerplate, or
 answers that simply don't address the question.
+这些针对开放题——敷衍或造假的受访者在这里留下的痕迹最明显：键盘乱敲、复制粘贴的套话，
+或干脆答非所问。
 """
 from __future__ import annotations
 
@@ -12,10 +15,10 @@ import pandas as pd
 
 from .base import register, empty_result, REQUIRE_OPENEND
 
-# --- gibberish detection -----------------------------------------------------
+# --- gibberish detection / 乱码检测 -----------------------------------------
 
-_REPEAT = re.compile(r"^(.)\1{2,}$")            # "aaaa", "。。。"
-_SYMBOLS = re.compile(r"^[\W_]+$", re.UNICODE)  # only punctuation/symbols
+_REPEAT = re.compile(r"^(.)\1{2,}$")            # "aaaa", "。。。" / 单字符重复
+_SYMBOLS = re.compile(r"^[\W_]+$", re.UNICODE)  # only punctuation/symbols / 纯标点符号
 _KEYBOARD = (
     "asdf", "sdfg", "dfgh", "fghj", "qwer", "wert", "erty", "rtyu",
     "zxcv", "xcvb", "1234", "2345", "3456", "qwerty", "asdfg", "qazwsx",
@@ -24,10 +27,11 @@ _KEYBOARD = (
 
 def _is_gibberish(text: str) -> bool:
     """True for clear nonsense; deliberately conservative to avoid false hits
-    on short-but-valid answers like '无' / 'none'."""
+    on short-but-valid answers like '无' / 'none'.
+    明显是乱码才返回 True；故意保守，避免误伤“无”“none”这类短但有效的回答。"""
     t = str(text).strip().lower()
     if not t or t == "nan":
-        return False  # empty is 'missing', handled by another rule
+        return False  # empty is 'missing', handled by another rule / 空属于缺失，另有规则
     if _REPEAT.match(t):
         return True
     if _SYMBOLS.match(t):
@@ -36,7 +40,8 @@ def _is_gibberish(text: str) -> bool:
     if any(k in compact for k in _KEYBOARD):
         return True
     # Long Latin string with implausibly few vowels = keyboard mashing
-    # (catches things like "dhrjhryfgj" that dodge the keyboard-run list).
+    # (catches things like "dhrjhry" that dodge the keyboard-run list).
+    # 长串拉丁字母但元音异常少 = 键盘乱敲（抓“dhrjhry”这类漏过键位表的情形）。
     letters = re.sub(r"[^a-z]", "", t)
     if len(letters) >= 10:
         vowels = sum(c in "aeiou" for c in letters)
@@ -72,7 +77,7 @@ def check_gibberish(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame:
     return res
 
 
-# --- duplicate open-end text -------------------------------------------------
+# --- duplicate open-end text / 跨人开放题雷同 -------------------------------
 
 @register(
     key="duplicate_text",
@@ -90,9 +95,9 @@ def check_duplicate_text(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame
 
     for col in schema.openend_cols:
         norm = df[col].fillna("").astype(str).map(lambda s: re.sub(r"\s+", "", s.strip().lower()))
-        valid = norm.str.len() >= min_len  # ignore short generic answers ("无")
+        valid = norm.str.len() >= min_len  # ignore short generic answers ("无") / 忽略过短的通用答案
         counts = norm[valid].value_counts()
-        dup_values = set(counts[counts >= 2].index)
+        dup_values = set(counts[counts >= 2].index)  # texts appearing ≥2 times / 出现≥2次的文本
         for idx in df.index:
             if valid.get(idx, False) and norm[idx] in dup_values:
                 flagged.add(idx)
@@ -104,7 +109,7 @@ def check_duplicate_text(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame
     return res
 
 
-# --- off-topic (LLM-powered, optional) --------------------------------------
+# --- off-topic (LLM-powered) / 答非所问（大模型判官） -----------------------
 
 @register(
     key="offtopic",
@@ -118,11 +123,11 @@ def check_duplicate_text(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame
 )
 def check_offtopic(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame:
     res = empty_result(df.index)
-    from ..llm import get_client  # lazy import: keeps core dependency-free
+    from ..llm import get_client  # lazy import: keeps the core import-light / 懒加载，避免核心依赖它
 
     client = get_client()
     if client is None or not client.available:
-        return res  # engine also skips LLM rules without a key; double safety
+        return res  # engine also skips LLM rules without a key; double safety / 引擎也会跳过，双保险
 
     for col in schema.openend_cols:
         answers = df[col].fillna("").astype(str).tolist()

@@ -1,4 +1,5 @@
-"""End-to-end: auto-map the synthetic demo and confirm every rule fires."""
+"""End-to-end: auto-map the synthetic demo and confirm every rule fires.
+端到端测试：自动映射合成示例，并确认每条规则都命中。"""
 import importlib.util
 import os
 
@@ -21,7 +22,7 @@ def test_end_to_end_catches_each_issue():
     df = _build_demo()
     schema = guess_schema(df)
 
-    # auto-mapping sanity
+    # auto-mapping sanity / 自动列映射是否正确
     assert schema.nps_col == "nps_score"
     assert schema.duration_col == "duration_sec"
     assert "Q6_总体满意度" in schema.scale_cols
@@ -34,7 +35,7 @@ def test_end_to_end_catches_each_issue():
                  "重复刷屏", "自我重复", "整份雷同", "作答缺失", "越界数值"]:
         assert hits.get(name, 0) > 0, f"{name} 未命中"
 
-    # LLM rule must be skipped when no key is configured
+    # LLM rule must be skipped when no key is configured / 无 key 时 LLM 规则应被跳过
     assert any(s["rule"] == "答非所问" for s in res.summary["skipped_rules"])
     assert res.summary["total"] == len(df)
     assert "[QC] 风险等级" in res.detail.columns

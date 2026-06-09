@@ -1,8 +1,11 @@
 """Report generation: a styled Excel workbook and a standalone HTML summary.
+报告生成：带样式的 Excel 工作簿，以及一个独立的 HTML 总览页。
 
 Excel: the full detail table (original data + QC columns) with risk levels
 color-coded, plus a summary sheet. HTML: an at-a-glance dashboard with risk
 distribution, rule hit rates (Chart.js), and which rules ran/were skipped.
+Excel：完整明细表（原数据 + QC 列），风险等级按色标注，外加一个汇总表；
+HTML：一页式看板——风险分布、各规则命中率（Chart.js）、以及哪些规则跑了/被跳过。
 """
 from __future__ import annotations
 
@@ -13,7 +16,7 @@ import pandas as pd
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-# Risk-level fills for the Excel detail sheet.
+# Risk-level fills for the Excel detail sheet. / Excel 明细表里各风险档的填充色。
 _LEVEL_FILL = {
     "高": PatternFill(start_color="F8C9C4", end_color="F8C9C4", fill_type="solid"),
     "中": PatternFill(start_color="FCE8B2", end_color="FCE8B2", fill_type="solid"),
@@ -24,6 +27,7 @@ _QC_HEADER_FONT = Font(color="FFFFFF", bold=True)
 
 
 def write_excel(detail: pd.DataFrame, summary: dict, path: str) -> str:
+    """Write the detail + summary sheets, with QC columns styled. / 写出明细+汇总两张表，QC 列加样式。"""
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         detail.to_excel(writer, sheet_name="明细", index=False)
         _summary_frame(summary).to_excel(writer, sheet_name="汇总", index=False)
@@ -32,13 +36,14 @@ def write_excel(detail: pd.DataFrame, summary: dict, path: str) -> str:
         cols = list(detail.columns)
 
         # Style QC column headers so they stand out from the user's columns.
+        # 给 QC 列表头加样式，与用户原有列区分开。
         for j, col in enumerate(cols, start=1):
             if str(col).startswith("[QC] "):
                 cell = ws.cell(row=1, column=j)
                 cell.fill = _QC_HEADER_FILL
                 cell.font = _QC_HEADER_FONT
 
-        # Color each row's 风险等级 cell by level.
+        # Color each row's 风险等级 cell by level. / 按风险等级给每行的“风险等级”单元格上色。
         if "[QC] 风险等级" in cols:
             level_col = cols.index("[QC] 风险等级") + 1
             for i, level in enumerate(detail["[QC] 风险等级"].tolist(), start=2):
@@ -46,7 +51,7 @@ def write_excel(detail: pd.DataFrame, summary: dict, path: str) -> str:
                 if fill:
                     ws.cell(row=i, column=level_col).fill = fill
 
-        # Reasonable column widths.
+        # Reasonable column widths. / 设置合理的列宽。
         for j, col in enumerate(cols, start=1):
             ws.column_dimensions[get_column_letter(j)].width = min(
                 40, max(10, len(str(col)) + 4)
@@ -55,6 +60,7 @@ def write_excel(detail: pd.DataFrame, summary: dict, path: str) -> str:
 
 
 def _summary_frame(summary: dict) -> pd.DataFrame:
+    """Turn the summary dict into a two-column 指标/数值 table. / 把汇总字典转成“指标/数值”两列表。"""
     rows = [
         ("样本总数", summary.get("total", 0)),
         ("高风险（建议剔除）", summary.get("level_counts", {}).get("高", 0)),
@@ -69,7 +75,8 @@ def _summary_frame(summary: dict) -> pd.DataFrame:
 
 
 def render_html(summary: dict, title: str = "Cleanvey 质量检查报告") -> str:
-    """A self-contained HTML dashboard (also reused by the web result page)."""
+    """A self-contained HTML dashboard (also reused by the web result page).
+    一个自包含的 HTML 看板（网页结果页也复用它）。"""
     levels = summary.get("level_counts", {})
     hit_rates = summary.get("rule_hit_rates", {})
     skipped = summary.get("skipped_rules", [])
@@ -106,12 +113,14 @@ def render_html(summary: dict, title: str = "Cleanvey 质量检查报告") -> st
 
 
 def write_html(summary: dict, path: str, title: str = "Cleanvey 质量检查报告") -> str:
+    """Write the HTML dashboard to disk. / 把 HTML 看板写到磁盘。"""
     with open(path, "w", encoding="utf-8") as f:
         f.write(render_html(summary, title))
     return path
 
 
 def _card(label: str, value, color: str) -> str:
+    """Render one summary card. / 渲染一张汇总卡片。"""
     return (
         f"<div class='card' style='border-top:4px solid {color}'>"
         f"<div class='num' style='color:{color}'>{value}</div>"

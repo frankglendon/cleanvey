@@ -1,12 +1,17 @@
 """Near-duplicate open-ends (fuzzy).
+开放题近似雷同（模糊匹配）。
 
 Complements `duplicate_text` (which catches *exact* copy-paste). Here we catch
 answers that are highly similar but not identical — lightly reworded boilerplate.
 Following standard practice, this is treated as a **review** signal (low
 severity), not grounds for removal: short praise like "性价比高" legitimately
 collides, so similarity alone should never auto-drop a respondent.
+对 `duplicate_text`（抓“逐字相同”）的补充。这里抓高度相似但不完全相同的回答——
+改写过的套话。按惯例只作为“**复核**”信号（低严重度），不作为剔除依据：短好评（“性价比高”）
+天然会撞车，所以仅凭相似度绝不自动剔除。
 
 Uses RapidFuzz; bounded by `max_rows` to stay cheap on large datasets.
+用 RapidFuzz；以 `max_rows` 设界，保证在大数据上也不慢。
 """
 from __future__ import annotations
 
@@ -37,6 +42,7 @@ def check(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame:
     for col in schema.openend_cols:
         norm = df[col].fillna("").astype(str).map(lambda s: re.sub(r"\s+", "", s.strip().lower()))
         # group identical texts; only compare *distinct* substantial texts
+        # 把完全相同的文本归组；只对“不同的、够长的”文本两两比较
         groups: dict = {}
         for idx in df.index:
             t = norm[idx]

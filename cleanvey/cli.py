@@ -1,8 +1,11 @@
 """Command-line interface — `cleanvey check ...` and `cleanvey web`.
+命令行入口 —— `cleanvey check ...` 与 `cleanvey web`。
 
 `check` runs purely on the library (no Flask, no templates), so it works
 anywhere the package is installed. `web` serves the Flask UI and therefore must
 be run from a clone of the repo (the HTML templates live there).
+`check` 纯靠库运行（不依赖 Flask 与模板），装了包就能在任何目录用；`web` 启动 Flask 网页，
+需在仓库克隆目录下运行（HTML 模板在那里）。
 """
 from __future__ import annotations
 
@@ -17,6 +20,7 @@ from .schema import guess_schema, load_data
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Define the `check` / `web` subcommands. / 定义 check / web 两个子命令。"""
     parser = argparse.ArgumentParser(prog="cleanvey", description="Survey data QC toolkit")
     sub = parser.add_subparsers(dest="cmd")
 
@@ -33,6 +37,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run_check(args) -> int:
+    """Headless QC: load -> map -> run -> write Excel + print summary.
+    无界面跑 QC：加载 -> 列映射 -> 运行 -> 写 Excel 并打印汇总。"""
     df = load_data(args.file)
     schema = guess_schema(df)
     config = load_config(args.config)
@@ -59,9 +65,10 @@ def run_check(args) -> int:
 
 
 def run_web(args, flask_app=None) -> int:
+    """Start the Flask server. / 启动 Flask 服务。"""
     if flask_app is None:
         try:
-            from app import app as flask_app  # served from a clone (needs templates/)
+            from app import app as flask_app  # served from a clone (needs templates/) / 需克隆目录的 templates/
         except Exception:
             print("无法启动网页：请在项目克隆目录下运行 `cleanvey web`（网页依赖 templates/）。")
             return 1
@@ -72,7 +79,7 @@ def run_web(args, flask_app=None) -> int:
 
 def main(argv=None) -> int:
     raw = sys.argv[1:] if argv is None else argv
-    args = build_parser().parse_args(raw or ["web"])  # default to web
+    args = build_parser().parse_args(raw or ["web"])  # default to web / 不带参数默认启动网页
     if args.cmd == "check":
         return run_check(args)
     return run_web(args)

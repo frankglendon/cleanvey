@@ -1,12 +1,15 @@
 """Generate a synthetic demo survey with known quality problems baked in.
+生成一份合成的演示问卷，并刻意埋入已知的质量问题。
 
 Everything here is randomly generated — no real respondents, clients, or
 projects. Each QC issue type is injected into a disjoint block of rows so that
 running Cleanvey on the output visibly catches every rule.
+这里的一切都是随机生成的——没有真实受访者、客户或项目。每类质量问题被注入到互不重叠的
+行区间，这样对输出跑 Cleanvey 时每条规则都能明显命中。
 
-Usage:
+Usage / 用法:
     python sample_data/generate_sample.py
-Produces: sample_data/demo_survey.xlsx
+Produces / 产出: sample_data/demo_survey.xlsx
 """
 from __future__ import annotations
 
@@ -15,7 +18,7 @@ import os
 import numpy as np
 import pandas as pd
 
-RNG = np.random.default_rng(42)
+RNG = np.random.default_rng(42)   # fixed seed for reproducibility / 固定随机种子，保证可复现
 N = 300
 
 SCALE_COLS = [
@@ -27,6 +30,7 @@ REGIONS = ["华东", "华南", "华北", "华中", "西南", "东北"]
 
 # Wide vocab so independent "normal" answers almost never collide by chance
 # (keeps duplicate-text detection meaningful in the demo).
+# 用足够大的词库，让独立的“正常”回答几乎不会偶然撞车（这样雷同检测在演示里才有意义）。
 _ADJ = ["性价比", "质量", "服务态度", "物流速度", "包装", "使用体验", "口味", "外观设计",
         "做工", "续航", "性能", "客服响应", "售后", "界面", "音质", "拍照效果"]
 _EVAL = ["很不错", "比较满意", "还算可以", "超出预期", "挺好的", "无可挑剔", "令人满意",
@@ -39,11 +43,12 @@ _EXTRA = ["希望多搞活动", "期待新品上市", "客服点赞", "发货能
 
 
 def _reason() -> str:
+    """A near-unique, realistic normal open-end. / 一条几乎唯一、像真人写的正常开放题。"""
     return f"{RNG.choice(_ADJ)}{RNG.choice(_EVAL)}，{RNG.choice(_VERB)}，{RNG.choice(_EXTRA)}"
 
 
 def build() -> pd.DataFrame:
-    # baseline: everyone starts as a clean, normal respondent
+    # baseline: everyone starts as a clean, normal respondent / 基线：先全造成干净的正常样本
     df = pd.DataFrame({
         "respondent_id": [f"R{1000 + i}" for i in range(N)],
         "duration_sec": np.clip(RNG.normal(200, 55, N), 60, None).round().astype(int),
@@ -56,32 +61,36 @@ def build() -> pd.DataFrame:
 
     # Make NPS broadly consistent with overall satisfaction (realistic): a
     # satisfied respondent recommends more. Injected contradictions stand out.
+    # 让 NPS 与总体满意度大体一致（更真实）：越满意越愿推荐；这样注入的矛盾才会突出。
     base = (df["Q6_总体满意度"] - 1) / 4 * 10            # 1..5 -> 0..10
     nps = base + RNG.normal(0, 1.2, N)
     df.insert(2, "nps_score", np.clip(nps, 0, 10).round().astype(int))
+
     df["open_reason"] = [_reason() for _ in range(N)]
     df["open_suggestion"] = ["" if RNG.random() < 0.3 else _reason() for _ in range(N)]
 
     # child age: present for ~60% of older respondents, plausibly spaced
+    # 子女年龄：约 60% 的较年长受访者有，且年龄差合理
     child = []
     for a in df["age"]:
         if a >= 28 and RNG.random() < 0.6:
-            child.append(int(RNG.integers(0, a - 22)))   # parent >= 22 at birth
+            child.append(int(RNG.integers(0, a - 22)))   # parent >= 22 at birth / 生育时≥22岁
         else:
             child.append(np.nan)
     df["child_age"] = child
 
     obj_cols = ["nps_score", *SCALE_COLS, "age", "gender", "region", "child_age"]
 
-    # 0-14 speeding
+    # --- inject one issue type per disjoint row block / 每个互不重叠的行区间注入一类问题 ---
+    # 0-14 speeding / 超速
     df.loc[0:14, "duration_sec"] = RNG.integers(5, 25, 15)
-    # 15-29 straightlining (all scale items identical)
+    # 15-29 straightlining (all scale items identical) / 直线（量表全相同）
     for i in range(15, 30):
         df.loc[i, SCALE_COLS] = int(RNG.integers(1, 6))
-    # 30-39 pattern (zig-zag)
+    # 30-39 pattern (zig-zag) / 模式化（锯齿）
     for i in range(30, 40):
         df.loc[i, SCALE_COLS] = [1, 3, 1, 3, 1, 3]
-    # 40-49 contradiction (top NPS vs lowest satisfaction, and vice-versa)
+    # 40-49 contradiction (top NPS vs lowest satisfaction, and vice-versa) / 矛盾
     for k, i in enumerate(range(40, 50)):
         if k % 2 == 0:
             df.loc[i, "nps_score"] = 10
@@ -89,34 +98,32 @@ def build() -> pd.DataFrame:
         else:
             df.loc[i, "nps_score"] = 0
             df.loc[i, "Q6_总体满意度"] = 5
-    # 50-61 gibberish open-ends
+    # 50-61 gibberish open-ends / 开放题乱填
     junk = ["asdfgh", "。。。。。", "aaaa", "qwerty", "zxcvbn", "！！！！"]
     for i in range(50, 62):
         df.loc[i, "open_reason"] = RNG.choice(junk)
-    # 62-71 duplicated open-end text (copy-paste)
+    # 62-71 duplicated open-end text (copy-paste) / 跨人复制粘贴
     df.loc[62:71, "open_reason"] = "这个产品我用了很久一直都很满意非常推荐大家购买真的很好"
-    # 72-79 duplicate respondents (identical objective answers, in pairs)
+    # 72-79 duplicate respondents (identical objective answers, in pairs) / 整份雷同（成对）
     for a in range(72, 80, 2):
         df.loc[a + 1, obj_cols] = df.loc[a, obj_cols].values
-    # 80-89 missing (blank out most key questions)
+    # 80-89 missing (blank out most key questions) / 缺失（关键题大面积留空）
     blank_cols = ["nps_score", *SCALE_COLS, "open_reason"]
     for i in range(80, 90):
         df.loc[i, blank_cols] = np.nan
-    # 90-94 out-of-range NPS
+    # 90-94 out-of-range NPS / NPS 越界
     df.loc[90:92, "nps_score"] = 99
     df.loc[93:94, "nps_score"] = -1
 
-    # 95-102 low-effort / non-substantive open-ends
+    # 95-102 low-effort / non-substantive open-ends / 无信息作答
     low = ["不知道", "没有", "随便", "不清楚", "无所谓", "说不上来", "记不住", "没什么"]
     for k, i in enumerate(range(95, 103)):
         df.loc[i, "open_reason"] = low[k]
-
-    # 103-108 too-short open-ends (real but uninformative)
+    # 103-108 too-short open-ends (real but uninformative) / 过短（真实但无信息）
     short = ["挺好", "不错", "蛮好", "可以", "赞", "行"]
     for k, i in enumerate(range(103, 109)):
         df.loc[i, "open_reason"] = short[k]
-
-    # 109-116 near-duplicate (reworded boilerplate, NOT exact)
+    # 109-116 near-duplicate (reworded boilerplate, NOT exact) / 近似雷同（改写过，非逐字相同）
     near = [
         "这个产品我用了大半年总体非常满意会推荐身边朋友购买",
         "这个产品我用了大半年整体非常满意会推荐身边的朋友购买",
@@ -129,16 +136,13 @@ def build() -> pd.DataFrame:
     ]
     for k, i in enumerate(range(109, 117)):
         df.loc[i, "open_reason"] = near[k]
-
-    # 117-121 logic contradiction: parent only a few years older than child
+    # 117-121 logic contradiction: parent only a few years older than child / 逻辑矛盾：亲子年龄差太小
     for i in range(117, 122):
         df.loc[i, "child_age"] = int(df.loc[i, "age"]) - int(RNG.integers(3, 10))
-
-    # 122-127 self-duplicate: same text pasted into both open-ends
+    # 122-127 self-duplicate: same text pasted into both open-ends / 自我重复：两道开放题填同样内容
     for i in range(122, 128):
         df.loc[i, "open_suggestion"] = df.loc[i, "open_reason"]
-
-    # 128-133 repeated-token spam
+    # 128-133 repeated-token spam / 重复刷屏
     spam = ["推荐推荐推荐推荐", "好的好的好的好的", "可以可以可以可以",
             "满意满意满意满意", "不错不错不错不错", "值得值得值得值得"]
     for k, i in enumerate(range(128, 134)):

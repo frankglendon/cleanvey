@@ -1,4 +1,5 @@
-"""Per-rule unit tests on small hand-built tables."""
+"""Per-rule unit tests on small hand-built tables.
+逐条规则的单元测试，使用手工构造的小表。"""
 import pandas as pd
 
 from cleanvey.rules import REGISTRY
@@ -6,6 +7,7 @@ from cleanvey.schema import Schema
 
 
 def run(key, df, schema, params=None):
+    """Run one registered rule with merged params. / 用合并后的参数运行某条注册规则。"""
     rule = REGISTRY[key]
     merged = {**rule.default_params, **(params or {})}
     return rule.func(df, schema, merged)

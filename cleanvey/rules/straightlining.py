@@ -1,9 +1,12 @@
 """Straightlining: the same answer down a whole block of scale questions.
+直线作答：一整组量表题几乎都选同一个答案。
 
 When a respondent gives an (almost) identical value to every matrix/Likert
 item, they are likely not reading the questions. We measure the spread of the
 scale answers per respondent and flag rows whose spread is at or below a
 threshold (0 = literally all identical).
+当受访者对每道量表题给出（几乎）相同的值，多半没在读题。我们按受访者计算量表答案的
+离散度，离散度不超过阈值就标记（0 表示完全一致）。
 """
 from __future__ import annotations
 
@@ -27,8 +30,8 @@ def check(df: pd.DataFrame, schema, params: dict) -> pd.DataFrame:
     std_threshold = float(params.get("std_threshold", 0.0))
 
     vals = df[schema.scale_cols].apply(pd.to_numeric, errors="coerce")
-    answered = vals.notna().sum(axis=1)
-    spread = vals.std(axis=1)
+    answered = vals.notna().sum(axis=1)   # answered scale items / 已作答的量表题数
+    spread = vals.std(axis=1)             # spread per respondent / 每位受访者的离散度
 
     flagged = (answered >= min_items) & (spread <= std_threshold)
     res.loc[flagged, "flagged"] = True

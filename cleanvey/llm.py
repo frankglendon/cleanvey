@@ -1,12 +1,16 @@
-"""The LLM judge (Anthropic Claude by default).
+"""The LLM judge (Anthropic Claude by default). / 大模型判官（默认 Anthropic Claude）。
 
 This module is the *only* place that talks to an LLM. It powers the semantic
 layer (the off-topic check). Set `ANTHROPIC_API_KEY` (directly or via a .env
 file) to run it.
+本模块是唯一与大模型交互的地方，负责语义层（“答非所问”判断）。设置
+`ANTHROPIC_API_KEY`（直接设或写在 .env 里）即可启用。
 
 It is also designed to fail soft for robustness: if the key or the `anthropic`
 package is missing, `get_client()` returns None and the LLM rule is skipped with
 a note in the report — the deterministic rule engine still runs either way.
+为稳健起见它也做了优雅降级：缺 key 或缺 `anthropic` 包时，`get_client()` 返回 None，
+LLM 规则被跳过并在报告里注明——确定性规则引擎照常运行。
 """
 from __future__ import annotations
 
@@ -19,7 +23,8 @@ DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 
 
 def _load_dotenv() -> None:
-    """Minimal .env loader so users don't need python-dotenv."""
+    """Minimal .env loader so users don't need python-dotenv.
+    极简 .env 读取，免去对 python-dotenv 的依赖。"""
     path = os.path.join(os.getcwd(), ".env")
     if not os.path.exists(path):
         return
@@ -38,7 +43,7 @@ def _load_dotenv() -> None:
 
 
 def _extract_json(text: str) -> str:
-    """Pull the first {...} block out of a model response."""
+    """Pull the first {...} block out of a model response. / 从模型回复里抠出第一个 {...} 块。"""
     match = re.search(r"\{.*\}", text, re.DOTALL)
     return match.group(0) if match else "{}"
 
@@ -57,14 +62,17 @@ class LLMClient:
 
     def classify_offtopic(self, question: str, answers: List[str], batch_size: int = 20) -> List[bool]:
         """Return one bool per answer: True if it does not address `question`.
+        对每条回答返回一个布尔值：True 表示“答非所问”。
 
         Empty answers are treated as on-topic (missingness is a separate rule).
         Any error degrades gracefully to all-False.
+        空回答视为切题（缺失另有规则处理）；出现任何错误时优雅降级为全 False。
         """
         results = [False] * len(answers)
         if not self.available:
             return results
 
+        # only ask about non-empty answers / 只对非空回答发起判断
         todo = [
             (i, str(a)) for i, a in enumerate(answers)
             if str(a).strip() and str(a).strip().lower() != "nan"
@@ -102,7 +110,8 @@ _initialized = False
 
 
 def get_client() -> Optional[LLMClient]:
-    """Return a ready LLM client, or None if LLM checks aren't available."""
+    """Return a ready LLM client, or None if LLM checks aren't available.
+    返回可用的 LLM 客户端；若不可用则返回 None。"""
     global _client, _initialized
     if _initialized:
         return _client
@@ -121,4 +130,5 @@ def get_client() -> Optional[LLMClient]:
 
 
 def llm_available() -> bool:
+    """True if the LLM judge can run (key + package present). / 判官是否可用（key 与依赖都在）。"""
     return get_client() is not None

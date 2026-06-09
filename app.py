@@ -1,16 +1,19 @@
-"""Cleanvey web app (Flask).
+"""Cleanvey web app (Flask). / Cleanvey 网页应用（Flask）。
 
-Run it directly:
+Run it directly / 直接运行:
     python app.py            # then open http://127.0.0.1:5000
     python app.py web --port 8000
-    python app.py check sample_data/demo_survey.xlsx   # delegates to the CLI
+    python app.py check sample_data/demo_survey.xlsx   # delegates to the CLI / 委托给 CLI
 
 If the package is installed (`pip install -e .`), the same commands are
 available as `cleanvey web` / `cleanvey check ...`. The argument parsing and
 the headless `check` command live in `cleanvey/cli.py`.
+若已安装包（`pip install -e .`），可直接用 `cleanvey web` / `cleanvey check ...`；
+参数解析与无界面的 `check` 命令在 `cleanvey/cli.py`。
 
 Per-upload state is kept in an in-memory dict — fine for local, single-user use
 (this is a demo/portfolio tool, not a multi-tenant service).
+每次上传的状态存在内存字典里——本地单用户够用（这是演示/作品集工具，不是多租户服务）。
 """
 from __future__ import annotations
 
@@ -27,20 +30,21 @@ from cleanvey.report import write_excel, write_html
 from cleanvey.schema import ColumnRole, Schema, guess_schema, load_data
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE, "uploads")
-OUTPUT_DIR = os.path.join(BASE, "outputs")
+UPLOAD_DIR = os.path.join(BASE, "uploads")   # uploaded files / 上传的文件
+OUTPUT_DIR = os.path.join(BASE, "outputs")   # generated reports / 生成的报告
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 ALLOWED = (".csv", ".xlsx", ".xls")
-SESSIONS: dict = {}  # token -> {"path", "df", "schema", "result", "excel", "html"}
+SESSIONS: dict = {}  # token -> {"path", "df", "schema", "result", "excel", "html"} / 每次上传的会话状态
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB
+app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32 MB upload cap / 上传大小上限 32MB
 
 
 def schema_from_form(columns, form) -> Schema:
-    """Rebuild a Schema from the mapping form (role_<col> -> role)."""
+    """Rebuild a Schema from the mapping form (role_<col> -> role).
+    根据映射表单（role_<列名> -> 角色）重建 Schema。"""
     schema = Schema()
     for col in columns:
         role = form.get(f"role_{col}", ColumnRole.OTHER.value)
@@ -61,11 +65,14 @@ def schema_from_form(columns, form) -> Schema:
 
 @app.route("/")
 def index():
+    """Upload page. / 上传页。"""
     return render_template("index.html", llm=llm_available())
 
 
 @app.route("/upload", methods=["POST"])
 def upload():
+    """Receive a file, auto-guess the schema, go to the mapping page.
+    接收文件，自动猜测列映射，跳转到映射确认页。"""
     file = request.files.get("file")
     if not file or not file.filename:
         return redirect(url_for("index"))
@@ -84,6 +91,8 @@ def upload():
 
 @app.route("/mapping/<token>")
 def mapping(token):
+    """Show the auto-guessed column roles for the user to confirm/adjust.
+    展示自动识别的列角色，供用户确认/调整。"""
     sess = SESSIONS.get(token) or abort(404)
     df, schema = sess["df"], sess["schema"]
     columns = [
@@ -103,6 +112,8 @@ def mapping(token):
 
 @app.route("/run/<token>", methods=["POST"])
 def run(token):
+    """Run the engine with the confirmed schema, write reports, go to result.
+    用确认后的映射跑引擎，写报告，跳到结果页。"""
     sess = SESSIONS.get(token) or abort(404)
     df = sess["df"]
     schema = schema_from_form(df.columns, request.form)
@@ -122,6 +133,8 @@ def run(token):
 
 @app.route("/result/<token>")
 def result(token):
+    """Result dashboard + a 50-row preview of the detail table.
+    结果看板 + 明细表前 50 行预览。"""
     sess = SESSIONS.get(token) or abort(404)
     res = sess.get("result") or abort(404)
     preview = res.detail.head(50)
@@ -134,6 +147,7 @@ def result(token):
 
 @app.route("/download/<token>/<kind>")
 def download(token, kind):
+    """Download the Excel detail or the HTML report. / 下载 Excel 明细或 HTML 报告。"""
     sess = SESSIONS.get(token) or abort(404)
     path = sess.get("excel" if kind == "excel" else "html") or abort(404)
     return send_file(path, as_attachment=True)
@@ -144,6 +158,8 @@ if __name__ == "__main__":
 
     from cleanvey.cli import build_parser, run_check, run_web
 
+    # `check` -> CLI; anything else (default) -> serve this module's app.
+    # `check` 走 CLI；其余（默认）启动本模块的 app。
     _args = build_parser().parse_args(sys.argv[1:] or ["web"])
     if _args.cmd == "check":
         raise SystemExit(run_check(_args))

@@ -1,9 +1,12 @@
 """Repeated-token spam: an open-end that is one short token piled up.
+重复刷屏：开放题就是同一个短词反复堆砌。
 
 Examples: "推荐推荐推荐推荐", "好的好的好的好的". The existing gibberish rule
 only catches *single-character* repeats ("好好好"); this catches multi-character
 units repeated N times. Kept distinct by requiring a repeating unit of length
 >= 2, so it never double-counts with gibberish.
+例子：“推荐推荐推荐推荐”“好的好的好的好的”。乱码规则只抓“单字符”重复（“好好好”）；
+这条抓“多字符”单元重复 N 次。要求重复单元长度 ≥ 2，从而与乱码规则不重叠。
 """
 from __future__ import annotations
 
@@ -15,11 +18,13 @@ from .base import register, empty_result, REQUIRE_OPENEND
 
 
 def _is_repeated_token(text: str, min_repeats: int = 3) -> bool:
+    """True if `text` is one unit (len>=2) repeated >= min_repeats times.
+    若 `text` 是某个单元（长度≥2）重复至少 min_repeats 次则为 True。"""
     t = re.sub(r"\s+", "", str(text).strip())
     n = len(t)
     if n < 4:
         return False
-    # unit length >= 2 (single-char repeats are gibberish's job)
+    # unit length >= 2 (single-char repeats are gibberish's job) / 单元长度≥2（单字符归乱码管）
     for unit in range(2, n // min_repeats + 1):
         if n % unit == 0 and t[:unit] * (n // unit) == t:
             return True
