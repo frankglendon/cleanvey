@@ -1,21 +1,20 @@
-"""Cleanvey entry point — both a CLI and a small Flask web app.
+"""Cleanvey web app (Flask).
 
-CLI:
-    python app.py check sample_data/demo_survey.xlsx
-    python app.py check data.xlsx --config config/default_rules.yaml --out report.xlsx --llm
-
-Web:
+Run it directly:
     python app.py            # then open http://127.0.0.1:5000
     python app.py web --port 8000
+    python app.py check sample_data/demo_survey.xlsx   # delegates to the CLI
 
-The web app keeps per-upload state in an in-memory dict — fine for local,
-single-user use (this is a demo/portfolio tool, not a multi-tenant service).
+If the package is installed (`pip install -e .`), the same commands are
+available as `cleanvey web` / `cleanvey check ...`. The argument parsing and
+the headless `check` command live in `cleanvey/cli.py`.
+
+Per-upload state is kept in an in-memory dict — fine for local, single-user use
+(this is a demo/portfolio tool, not a multi-tenant service).
 """
 from __future__ import annotations
 
-import argparse
 import os
-import sys
 import uuid
 
 from flask import (Flask, abort, redirect, render_template, request,
@@ -140,56 +139,12 @@ def download(token, kind):
     return send_file(path, as_attachment=True)
 
 
-def run_cli(args) -> int:
-    df = load_data(args.file)
-    schema = guess_schema(df)
-    config = load_config(args.config)
-    use_llm = args.llm and llm_available()
-    if args.llm and not use_llm:
-        print("提示：未检测到 ANTHROPIC_API_KEY，已跳过 LLM 语义检查。")
-
-    result = run_qc(df, schema, config, use_llm=use_llm)
-    write_excel(result.detail, result.summary, args.out)
-
-    s = result.summary
-    print(f"\n样本总数：{s['total']}")
-    print(f"高风险 {s['level_counts']['高']} · 中风险 {s['level_counts']['中']} "
-          f"· 低风险 {s['level_counts']['低']}")
-    print("各规则命中：")
-    for name, hits in s["rule_hits"].items():
-        print(f"  - {name}: {hits}")
-    if s["skipped_rules"]:
-        print("未运行的规则：")
-        for sk in s["skipped_rules"]:
-            print(f"  - {sk['rule']}（{sk['reason']}）")
-    print(f"\n报告已写出：{args.out}")
-    return 0
-
-
-def main(argv=None) -> int:
-    argv = sys.argv[1:] if argv is None else argv
-    parser = argparse.ArgumentParser(prog="cleanvey", description="Survey data QC toolkit")
-    sub = parser.add_subparsers(dest="cmd")
-
-    c = sub.add_parser("check", help="run QC on a file (no server)")
-    c.add_argument("file")
-    c.add_argument("--config", default=None, help="rules YAML (optional)")
-    c.add_argument("--out", default="cleanvey_report.xlsx")
-    c.add_argument("--llm", action="store_true", help="enable LLM semantic checks")
-
-    w = sub.add_parser("web", help="start the web app")
-    w.add_argument("--port", type=int, default=5000)
-    w.add_argument("--host", default="127.0.0.1")
-
-    args = parser.parse_args(argv)
-    if args.cmd == "check":
-        return run_cli(args)
-    port = getattr(args, "port", 5000)
-    host = getattr(args, "host", "127.0.0.1")
-    print(f"Cleanvey running at http://{host}:{port}  (Ctrl+C to stop)")
-    app.run(host=host, port=port, debug=False)
-    return 0
-
-
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import sys
+
+    from cleanvey.cli import build_parser, run_check, run_web
+
+    _args = build_parser().parse_args(sys.argv[1:] or ["web"])
+    if _args.cmd == "check":
+        raise SystemExit(run_check(_args))
+    raise SystemExit(run_web(_args, flask_app=app))

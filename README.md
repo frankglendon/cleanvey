@@ -91,6 +91,14 @@ python app.py check data.xlsx \
   --llm                                   # optional: enable semantic checks
 ```
 
+### Install as a package / 作为包安装
+Prefer a real command instead of `python app.py`? Install the library + CLI:
+```bash
+pip install -e .            # then the `cleanvey` command is available
+cleanvey check sample_data/demo_survey.xlsx --out report.xlsx
+cleanvey web                # web UI — run from the cloned repo
+```
+
 ---
 
 ## 🤖 Optional LLM checks / 可选的 LLM 增强
