@@ -134,6 +134,16 @@ def build() -> pd.DataFrame:
     for i in range(117, 122):
         df.loc[i, "child_age"] = int(df.loc[i, "age"]) - int(RNG.integers(3, 10))
 
+    # 122-127 self-duplicate: same text pasted into both open-ends
+    for i in range(122, 128):
+        df.loc[i, "open_suggestion"] = df.loc[i, "open_reason"]
+
+    # 128-133 repeated-token spam
+    spam = ["推荐推荐推荐推荐", "好的好的好的好的", "可以可以可以可以",
+            "满意满意满意满意", "不错不错不错不错", "值得值得值得值得"]
+    for k, i in enumerate(range(128, 134)):
+        df.loc[i, "open_reason"] = spam[k]
+
     return df
 
 
@@ -145,7 +155,8 @@ def main() -> None:
     print(f"Wrote {len(df)} rows -> {out}")
     print("Injected: speeding(15) straightlining(15) pattern(10) contradiction(10) "
           "gibberish(12) duplicate_text(10) duplicate_respondent(8) missing(10) out_of_range(5) "
-          "low_effort(8) too_short(6) near_duplicate(8) logic_check(5)")
+          "low_effort(8) too_short(6) near_duplicate(8) logic_check(5) "
+          "self_duplicate(6) repeated_token(6)")
 
 
 if __name__ == "__main__":

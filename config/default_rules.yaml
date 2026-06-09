@@ -79,6 +79,18 @@ rules:
     params:
       min_chars: 4             # conservative; raise per project
 
+  repeated_token:              # "推荐推荐推荐" style spam (multi-char repeats)
+    enabled: true
+    weight: 0.7
+    params:
+      min_repeats: 3
+
+  self_duplicate:              # same text pasted across one respondent's open-ends
+    enabled: true
+    weight: 0.6
+    params:
+      min_len: 4
+
   near_duplicate:              # fuzzy near-duplicate -> review only, not drop
     enabled: true
     weight: 0.4

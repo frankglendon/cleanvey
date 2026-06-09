@@ -124,3 +124,16 @@ def test_logic_requires_blank():
              "then_col": "detail", "label": "应跳过却作答"}]
     r = run("logic_check", df, Schema(), params={"constraints": cons})
     assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
+
+
+def test_self_duplicate():
+    df = pd.DataFrame({"o1": ["这个产品很好用", "质量不错"],
+                       "o2": ["这个产品很好用", "物流很快"]})
+    r = run("self_duplicate", df, Schema(openend_cols=["o1", "o2"]))
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
+
+
+def test_repeated_token():
+    df = pd.DataFrame({"o": ["推荐推荐推荐推荐", "这是正常的一句话回答"]})
+    r = run("repeated_token", df, Schema(openend_cols=["o"]))
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])

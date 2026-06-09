@@ -88,7 +88,17 @@ The composite **risk score** is the weighted sum of rule severities. Buckets:
   - `requires_blank` — if `if_col ∈ if_in`, then `then_col` must be blank (else flag)
 - **Note**: shipped constraints are *illustrative*; declare your own. No project-tuned thresholds.
 
-## 14. 答非所问 · Off-topic *(optional, LLM)*
+## 14. 重复刷屏 · Repeated token
+- **Signal**: an open-end that is one short token piled up — "推荐推荐推荐推荐", "好的好的好的好的".
+- **Method**: detect a repeating unit of length ≥ 2 repeated `min_repeats`+ times. Single-character repeats ("好好好") are left to `gibberish`, so the two never double-count.
+- **Defaults**: `min_repeats = 3`.
+
+## 15. 自我重复 · Self-duplicate
+- **Signal**: a respondent pastes the *same* text into several of their own open-ends (distinct from cross-respondent `duplicate_text`).
+- **Method**: compare a respondent's open-ends against each other; flag when ≥ 2 substantial answers (length ≥ `min_len`) are identical.
+- **Needs**: ≥ 2 open-ended columns. **Defaults**: `min_len = 4`.
+
+## 16. 答非所问 · Off-topic *(optional, LLM)*
 - **Signal**: an open-end that doesn't address the question.
 - **Method**: batched semantic classification via Anthropic Claude. **Skipped entirely** without an API key; the report notes it was not run.
 - **Needs**: open-ended columns + `ANTHROPIC_API_KEY`.

@@ -32,7 +32,7 @@ action**. Every flag comes with a human-readable reason — no black box.
 
 ## ✨ Features / 功能
 
-- **13 built-in QC rules** (+ optional LLM), each a small, readable function — easy to audit and extend.
+- **15 built-in QC rules** (+ optional LLM), each a small, readable function — easy to audit and extend.
 - **Auto column mapping** from names + value patterns; confirm/adjust in the UI.
 - **Composite risk score** → 高 / 中 / 低 buckets with a 剔除 / 复核 / 保留 recommendation.
 - **Two outputs**: a color-coded Excel detail workbook and a standalone HTML dashboard.
@@ -51,8 +51,10 @@ action**. Every flag comes with a human-readable reason — no black box.
 | 开放题乱填 Gibberish | keyboard mashing / symbols | char heuristics + vowel ratio |
 | 无信息作答 Low-effort | "don't know / none / whatever" | polarity-aware dictionary |
 | 开放题过短 Too short | uninformative one-word answers | effective-character count |
+| 重复刷屏 Repeated token | "推荐推荐推荐" style spam | multi-char repeat unit |
 | 开放题雷同 Duplicate text | copy-pasted open-ends | normalised exact match |
 | 近似雷同 Near-duplicate | reworded boilerplate | RapidFuzz similarity (review) |
+| 自我重复 Self-duplicate | same text in all of one's open-ends | intra-respondent match |
 | 整份雷同 Duplicate respondent | identical whole questionnaires | row signature collision |
 | 逻辑矛盾 Logic check | age/income/exclusivity conflicts | configurable constraints |
 | 作答缺失 Missing | too many blanks | missing ratio > 50% |

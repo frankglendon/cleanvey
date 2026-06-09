@@ -14,7 +14,9 @@ from . import logic_check       # noqa: F401,E402
 from . import openend           # noqa: F401,E402
 from . import low_effort        # noqa: F401,E402
 from . import too_short         # noqa: F401,E402
+from . import repeated_token    # noqa: F401,E402
 from . import near_duplicate    # noqa: F401,E402
+from . import self_duplicate    # noqa: F401,E402
 from . import duplicate         # noqa: F401,E402
 from . import missing           # noqa: F401,E402
 from . import out_of_range      # noqa: F401,E402
