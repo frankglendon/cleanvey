@@ -91,12 +91,17 @@ rules:
     enabled: true
     weight: 0.8
     # Constraints only fire if their columns exist, so this is safe across
-    # datasets. Types: gte_diff (a-b>=min), le_cols (a<=b), not_both (mutually
-    # exclusive). The two below are illustrative — declare your own.
+    # datasets. Types:
+    #   gte_diff (a-b>=min) | le_cols (a<=b) | not_both (mutually exclusive)
+    #   forbidden_combo (a in a_in AND b in b_in)  -- "dead" contradictions
+    #   requires_answered / requires_blank          -- skip-logic
+    # The ones below are illustrative — declare your own.
     params:
       constraints:
         - {type: gte_diff, a: age, b: child_age, min: 16, label: "受访者与子女年龄差不合常理"}
         - {type: le_cols, a: personal_income, b: household_income, label: "个人收入高于家庭总收入"}
+        # - {type: forbidden_combo, a: nps, a_in: [0], b: intent, b_in: ["一定会推荐"], label: "推荐分与意愿死亡矛盾"}
+        # - {type: requires_answered, if_col: used_before, if_in: ["是"], then_col: satisfaction, label: "用过却未评分"}
 
 # Risk bucketing: respondents with weighted risk >= high -> 高 (drop),
 # >= medium -> 中 (review), otherwise 低 (keep).

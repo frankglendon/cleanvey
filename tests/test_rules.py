@@ -100,3 +100,27 @@ def test_logic_check():
     df = pd.DataFrame({"age": [40, 30], "child_age": [35, 5]})
     r = run("logic_check", df, Schema())  # default constraint: age - child_age >= 16
     assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
+
+
+def test_logic_forbidden_combo():
+    df = pd.DataFrame({"nps": [0, 8], "intent": ["一定会推荐", "可能不会"]})
+    cons = [{"type": "forbidden_combo", "a": "nps", "a_in": [0],
+             "b": "intent", "b_in": ["一定会推荐"], "label": "死亡矛盾"}]
+    r = run("logic_check", df, Schema(), params={"constraints": cons})
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
+
+
+def test_logic_requires_answered():
+    df = pd.DataFrame({"used": ["是", "否"], "detail": ["", ""]})
+    cons = [{"type": "requires_answered", "if_col": "used", "if_in": ["是"],
+             "then_col": "detail", "label": "应答未答"}]
+    r = run("logic_check", df, Schema(), params={"constraints": cons})
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])
+
+
+def test_logic_requires_blank():
+    df = pd.DataFrame({"used": ["否", "是"], "detail": ["填了内容", ""]})
+    cons = [{"type": "requires_blank", "if_col": "used", "if_in": ["否"],
+             "then_col": "detail", "label": "应跳过却作答"}]
+    r = run("logic_check", df, Schema(), params={"constraints": cons})
+    assert bool(r.loc[0, "flagged"]) and not bool(r.loc[1, "flagged"])

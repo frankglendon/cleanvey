@@ -78,8 +78,14 @@ The composite **risk score** is the weighted sum of rule severities. Buckets:
 - **Defaults**: `similarity = 0.9`, `min_len = 10`, bounded by `max_rows`.
 
 ## 13. 逻辑矛盾 · Logic check *(configurable)*
-- **Signal**: common-sense contradictions across closed-ended answers (respondent younger than their child, tenure > working life, personal income > household income, mutually exclusive options both chosen).
-- **Method**: declare constraints in config; each fires only if its columns exist (safe across datasets). Types: `gte_diff` (a−b ≥ min), `le_cols` (a ≤ b), `not_both` (mutually exclusive).
+- **Signal**: common-sense contradictions across closed-ended answers — respondent younger than their child, tenure > working life, income mismatch, mutually exclusive options, "dead" contradictions (NPS=0 yet "will definitely recommend"), and skip-logic violations.
+- **Method**: declare constraints in config; each fires only if its columns exist (safe across datasets). Constraint types:
+  - `gte_diff` — flag when `a − b < min`
+  - `le_cols` — flag when `a > b`
+  - `not_both` — flag when more than one of `cols` is answered (mutual exclusivity)
+  - `forbidden_combo` — flag when `a ∈ a_in` **and** `b ∈ b_in` (dead contradictions)
+  - `requires_answered` — if `if_col ∈ if_in`, then `then_col` must be answered (else flag)
+  - `requires_blank` — if `if_col ∈ if_in`, then `then_col` must be blank (else flag)
 - **Note**: shipped constraints are *illustrative*; declare your own. No project-tuned thresholds.
 
 ## 14. 答非所问 · Off-topic *(optional, LLM)*

@@ -8,9 +8,13 @@ columns are absent is silently skipped, so the same config is safe across
 datasets.
 
 Supported constraint types:
-  - gte_diff : flag when (a - b) < min            e.g. age - child_age >= 16
-  - le_cols  : flag when a > b                     e.g. personal <= household income
-  - not_both : flag when >1 of `cols` is truthy    mutually exclusive options
+  - gte_diff        : flag when (a - b) < min        e.g. age - child_age >= 16
+  - le_cols         : flag when a > b                e.g. personal <= household income
+  - not_both        : flag when >1 of `cols` is set  mutually exclusive options
+  - forbidden_combo : flag when a∈a_in AND b∈b_in    "dead" contradictions
+                      e.g. NPS=0 but intent="will definitely recommend"
+  - requires_answered: if if_col∈if_in, then_col must be answered (skip-logic)
+  - requires_blank   : if if_col∈if_in, then_col must be blank     (skip-logic)
 
 The shipped defaults are *illustrative* and only fire if matching columns exist.
 No project-specific thresholds.
@@ -20,6 +24,24 @@ from __future__ import annotations
 import pandas as pd
 
 from .base import register, empty_result
+
+
+def _in_set(series: pd.Series, values) -> pd.Series:
+    """Membership test robust to numeric/string representation."""
+    str_targets = {str(v).strip() for v in values}
+    num_targets = set()
+    for v in values:
+        try:
+            num_targets.add(float(v))
+        except (TypeError, ValueError):
+            pass
+    by_str = series.astype(str).str.strip().isin(str_targets)
+    by_num = pd.to_numeric(series, errors="coerce").isin(num_targets)
+    return by_str | by_num
+
+
+def _is_blank(series: pd.Series) -> pd.Series:
+    return series.isna() | (series.astype(str).str.strip().replace("nan", "") == "")
 
 _DEFAULT_CONSTRAINTS = [
     {"type": "gte_diff", "a": "age", "b": "child_age", "min": 16,
@@ -48,9 +70,23 @@ def _violation(df: pd.DataFrame, c: dict):
         cols = [col for col in c.get("cols", []) if col in df]
         if len(cols) < 2:
             return None
-        selected = sum(df[col].astype(str).str.strip().replace("nan", "").astype(bool)
-                       for col in cols)
+        selected = sum((~_is_blank(df[col])).astype(int) for col in cols)
         return selected > 1
+    if t == "forbidden_combo":
+        a, b = c["a"], c["b"]
+        if a not in df or b not in df:
+            return None
+        return _in_set(df[a], c.get("a_in", [])) & _in_set(df[b], c.get("b_in", []))
+    if t == "requires_answered":
+        ic, tc = c["if_col"], c["then_col"]
+        if ic not in df or tc not in df:
+            return None
+        return _in_set(df[ic], c.get("if_in", [])) & _is_blank(df[tc])
+    if t == "requires_blank":
+        ic, tc = c["if_col"], c["then_col"]
+        if ic not in df or tc not in df:
+            return None
+        return _in_set(df[ic], c.get("if_in", [])) & ~_is_blank(df[tc])
     return None
 
 
