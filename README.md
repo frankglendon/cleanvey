@@ -14,6 +14,18 @@ action**. Every flag comes with a human-readable reason — no black box.
 
 ---
 
+## 📸 界面预览 / Screenshots
+
+| 上传 Upload | 自动识别列 Auto column mapping |
+|:---:|:---:|
+| ![upload](docs/screenshots/01_upload.png) | ![mapping](docs/screenshots/02_mapping.png) |
+
+**结果与风险报告 / Result & risk report**
+
+![result](docs/screenshots/03_result.png)
+
+---
+
 ## ✨ Features / 功能
 
 - **9 built-in QC rules**, each a small, readable function — easy to audit and extend.
