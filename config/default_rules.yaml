@@ -1,26 +1,28 @@
-# Cleanvey rule configuration.
+# Cleanvey rule configuration. / Cleanvey 规则配置。
 # Everything here is optional — Cleanvey ships sensible defaults. Copy this file,
 # edit it, and pass it with `--config your_rules.yaml` to override.
+# 这里全是可选项——Cleanvey 自带合理默认值。复制本文件、修改后用
+# `--config your_rules.yaml` 传入即可覆盖。
 #
-# For each rule you can set:
-#   enabled : true/false   turn the rule on or off
-#   weight  : number       how much it contributes to the risk score
-#   params  : {...}        rule-specific thresholds (see comments)
+# For each rule you can set / 每条规则可设置：
+#   enabled : true/false   turn the rule on or off / 开关该规则
+#   weight  : number       how much it contributes to the risk score / 对风险分的权重
+#   params  : {...}        rule-specific thresholds / 该规则的阈值参数
 
 rules:
   speeding:
     enabled: true
     weight: 1.0
     params:
-      relative_ratio: 0.34   # flag if duration < 34% of the median duration
-      min_seconds: 0         # absolute floor in seconds (0 = ignore)
+      relative_ratio: 0.34   # flag if duration < 34% of the median / 时长 < 中位数的34% 即标记
+      min_seconds: 0         # absolute floor in seconds (0 = ignore) / 绝对下限秒数（0=忽略）
 
   straightlining:
     enabled: true
     weight: 1.0
     params:
-      min_items: 3           # need at least this many scale answers
-      std_threshold: 0.0     # 0 = all identical; raise to allow tiny variation
+      min_items: 3           # need at least this many scale answers / 至少作答这么多量表题
+      std_threshold: 0.0     # 0 = all identical; raise to allow variation / 0=完全相同，调高可容差异
 
   pattern:
     enabled: true
@@ -30,7 +32,7 @@ rules:
     enabled: true
     weight: 0.7
     params:
-      gap_threshold: 0.8     # 0..1 normalised gap between NPS and satisfaction
+      gap_threshold: 0.8     # 0..1 normalised gap between NPS and satisfaction / NPS 与满意度的归一化差距
 
   gibberish:
     enabled: true
@@ -40,9 +42,9 @@ rules:
     enabled: true
     weight: 0.7
     params:
-      min_len: 8             # ignore short generic answers when matching
+      min_len: 8             # ignore short generic answers when matching / 忽略过短通用语
 
-  offtopic:                  # LLM rule — runs only when an API key is set
+  offtopic:                  # LLM judge — runs only when an API key is set / 大模型判官，配了 key 才跑
     enabled: true
     weight: 0.8
     params:
@@ -52,13 +54,13 @@ rules:
     enabled: true
     weight: 0.9
     params:
-      min_answered: 5        # need this many answered objective questions
+      min_answered: 5        # need this many answered objective questions / 至少作答这么多客观题
 
   missing:
     enabled: true
     weight: 0.6
     params:
-      max_missing_ratio: 0.5 # flag if more than 50% of key questions are blank
+      max_missing_ratio: 0.5 # flag if more than 50% of key questions are blank / 关键题缺失超50%即标记
 
   out_of_range:
     enabled: true
@@ -67,47 +69,47 @@ rules:
       nps_min: 0
       nps_max: 10
 
-  low_effort:                  # "don't know / none / whatever" open-ends
+  low_effort:                  # "don't know / none" open-ends / 无信息作答（不知道/没有）
     enabled: true
     weight: 0.5
     params:
-      negative_polarity_cols: []   # columns where "none" is a valid answer
+      negative_polarity_cols: []   # columns where "none" is a valid answer / “没有”合理的列（豁免）
 
-  too_short:                   # open-ends with too few effective characters
+  too_short:                   # open-ends with too few effective chars / 开放题有效字数过少
     enabled: true
     weight: 0.3
     params:
-      min_chars: 4             # conservative; raise per project
+      min_chars: 4             # conservative; raise per project / 保守默认，按项目调高
 
-  repeated_token:              # "推荐推荐推荐" style spam (multi-char repeats)
+  repeated_token:              # "推荐推荐推荐" style spam (multi-char repeats) / 多字词重复刷屏
     enabled: true
     weight: 0.7
     params:
       min_repeats: 3
 
-  self_duplicate:              # same text pasted across one respondent's open-ends
+  self_duplicate:              # same text across one respondent's open-ends / 同一人多题填相同内容
     enabled: true
     weight: 0.6
     params:
       min_len: 4
 
-  near_duplicate:              # fuzzy near-duplicate -> review only, not drop
+  near_duplicate:              # fuzzy near-duplicate -> review only, not drop / 近似雷同，仅复核不剔除
     enabled: true
     weight: 0.4
     params:
-      similarity: 0.9          # 0..1 RapidFuzz ratio
+      similarity: 0.9          # 0..1 RapidFuzz ratio / RapidFuzz 相似度
       min_len: 10
       max_rows: 2000
 
-  logic_check:                 # configurable common-sense consistency checks
+  logic_check:                 # configurable consistency checks / 可配置的一致性核验
     enabled: true
     weight: 0.8
     # Constraints only fire if their columns exist, so this is safe across
-    # datasets. Types:
-    #   gte_diff (a-b>=min) | le_cols (a<=b) | not_both (mutually exclusive)
-    #   forbidden_combo (a in a_in AND b in b_in)  -- "dead" contradictions
-    #   requires_answered / requires_blank          -- skip-logic
-    # The ones below are illustrative — declare your own.
+    # datasets. The ones below are illustrative — declare your own.
+    # 列不存在的约束自动跳过（跨数据安全）。下面只是示例，请自行声明。
+    # Types / 类型：gte_diff (a-b>=min) | le_cols (a<=b) | not_both (互斥)
+    #   forbidden_combo (a in a_in AND b in b_in)  -- "dead" contradictions / 死亡矛盾
+    #   requires_answered / requires_blank          -- skip-logic / 跳转逻辑
     params:
       constraints:
         - {type: gte_diff, a: age, b: child_age, min: 16, label: "受访者与子女年龄差不合常理"}
@@ -115,8 +117,8 @@ rules:
         # - {type: forbidden_combo, a: nps, a_in: [0], b: intent, b_in: ["一定会推荐"], label: "推荐分与意愿死亡矛盾"}
         # - {type: requires_answered, if_col: used_before, if_in: ["是"], then_col: satisfaction, label: "用过却未评分"}
 
-# Risk bucketing: respondents with weighted risk >= high -> 高 (drop),
-# >= medium -> 中 (review), otherwise 低 (keep).
+# Risk bucketing / 风险分档: weighted risk >= high -> 高 (drop / 剔除),
+# >= medium -> 中 (review / 复核), otherwise 低 (keep / 保留).
 scoring:
   high: 0.9
   medium: 0.4
