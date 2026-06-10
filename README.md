@@ -184,5 +184,23 @@ tests/                     # pytest：逐规则 + 端到端
 
 - **Tests / 测试：** `python -m pytest` —— 逐条规则 + 端到端跑通（确认每条规则都在合成数据上命中）。
   CI 在 Python 3.10–3.12 上保持绿色。
-- **License & data / 许可与数据：** MIT。所有示例数据均由 `sample_data/generate_sample.py`
-  随机生成，与任何真实受访者、客户或项目无关。
+- **License & data / 许可与数据：** MIT © Xiangyu (Frank) Bai。所有示例数据均由
+  `sample_data/generate_sample.py` 随机生成，与任何真实受访者、客户或项目无关。
+
+---
+
+## 👤 About the author / 关于作者
+
+**Xiangyu (Frank) Bai** — a market researcher / analyst who builds AI-assisted
+tools to solve real business problems. Cleanvey began as my entry to an internal
+company AI hackathon, where it placed **an internal award**; this public
+version is fully desensitized (synthetic data and generic methodology only).
+
+Open to opportunities in **market research, data analysis, and consulting**.
+
+- 🔗 LinkedIn: https://www.linkedin.com/in/frank-bai-411173260
+- 💻 GitHub: https://github.com/frankglendon
+
+**白翔宇（Frank）** —— 市场研究 / 数据分析方向，且能用 AI 自己造工具解决真实业务问题。
+Cleanvey 最初是我参加公司内部 AI 黑客松的参赛作品，获 **奖项**；这个公开版本已
+**完全脱敏**（只含合成数据与通用方法论）。求职方向：**市场研究、数据分析、咨询**，欢迎联系。
