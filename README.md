@@ -113,7 +113,7 @@ Two principles / 两条原则：**rules generate candidates, the model judges**
 only QC columns are appended**（绝不就地改原始数据，只追加 QC 标记列），
 so the audit trail stays intact. 完整说明见 [docs/methodology.md](docs/methodology.md)。
 
-### The 15 checks / 规则一览
+### The 15 rule-based checks + the LLM judge / 规则一览
 
 | Rule 规则 | Catches 检测什么 | How 怎么判 |
 |---|---|---|
@@ -172,14 +172,15 @@ engine still runs and the report notes the judge was not configured.
 ## 🔧 Under the hood / 工程细节
 
 ```
-app.py                     # CLI + Flask 网页入口
-cleanvey/                  # 核心库
-  schema.py                #   数据加载 + 自动列映射
-  engine.py / scoring.py   #   跑规则 -> 综合风险 -> 高/中/低
-  rules/                   #   一条规则一个小文件，便于阅读
-  report.py / llm.py       #   Excel+HTML 报告 / Claude 判官客户端
-config/default_rules.yaml  # 规则开关、权重、阈值
-tests/                     # pytest：逐规则 + 端到端
+app.py                     # Flask web entry / 网页入口
+cleanvey/                  # the library / 核心库
+  cli.py                   #   `cleanvey check` / `cleanvey web` 命令行
+  schema.py                #   data loading + auto column mapping / 加载数据 + 自动列映射
+  engine.py / scoring.py   #   run rules -> composite risk -> 高/中/低
+  rules/                   #   one small file per rule / 一条规则一个小文件
+  report.py / llm.py       #   Excel+HTML reports / the LLM judge client
+config/default_rules.yaml  # toggle rules, weights, thresholds / 规则开关、权重、阈值
+tests/                     # pytest: per-rule + end-to-end / 逐规则 + 端到端
 ```
 
 - **Tests / 测试：** `python -m pytest` —— 逐条规则 + 端到端跑通（确认每条规则都在合成数据上命中）。
